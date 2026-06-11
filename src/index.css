@@ -1,0 +1,7 @@
+/* index.css — intentionally empty.
+   Design system is now loaded in main.jsx in this order:
+     styles/tokens.css
+     styles/themes.css
+     styles/globals.css
+     styles/animations.css
+   Do not add styles here. */

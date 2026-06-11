@@ -1,0 +1,124 @@
+/* ═══════════════════════════════════════════════
+   AuraHero — mascot section component
+   All Aura-specific visual tokens defined here.
+   ═══════════════════════════════════════════════ */
+
+.aura-hero {
+  background:    var(--color-surface);
+  border:        1px solid var(--color-primary-border);
+  border-radius: var(--radius-2xl);
+  padding:       var(--space-7) var(--space-8);
+  display:       flex;
+  align-items:   center;
+  gap:           var(--space-8);
+  position:      relative;
+  overflow:      hidden;
+  box-shadow:    var(--shadow-md);
+}
+
+/* Tinted ambient wash */
+.aura-hero__wash {
+  position:       absolute;
+  inset:          0;
+  background:     linear-gradient(135deg, var(--color-primary-subtle) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* ── Mascot ── */
+.aura-hero__mascot {
+  position:    relative;
+  flex-shrink: 0;
+  z-index:     2;
+}
+
+.aura-hero__mascot-img {
+  width:      100px;
+  height:     100px;
+  object-fit: contain;
+  filter:     drop-shadow(0 4px 20px var(--aura-glow));
+}
+
+/* Orbit ring */
+.aura-hero__orbit {
+  position:      absolute;
+  inset:         -16px;
+  border-radius: var(--radius-full);
+  border:        1.5px solid var(--aura-orbit-color);
+}
+
+.aura-hero__orbit-dot {
+  position:      absolute;
+  top:           -3px;
+  left:          50%;
+  transform:     translateX(-50%);
+  width:         6px;
+  height:        6px;
+  border-radius: var(--radius-full);
+  background:    var(--aura-orbit-dot);
+  box-shadow:    0 0 8px var(--aura-orbit-dot);
+}
+
+/* ── Copy ── */
+.aura-hero__body {
+  flex:     1;
+  z-index:  2;
+  position: relative;
+}
+
+.aura-hero__eyebrow {
+  font-size:      var(--text-2xs);
+  font-weight:    var(--weight-bold);
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  color:          var(--color-primary);
+  opacity:        0.8;
+  margin-bottom:  var(--space-2);
+}
+
+.aura-hero__headline {
+  font-family:    var(--font-display);
+  font-size:      var(--text-xl);
+  font-weight:    var(--weight-bold);
+  color:          var(--color-text-primary);
+  letter-spacing: var(--tracking-tight);
+  line-height:    var(--leading-snug);
+  margin-bottom:  var(--space-4);
+}
+
+/* ── Prompts ── */
+.aura-hero__prompts {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       var(--space-2);
+}
+
+.aura-prompt-chip {
+  display:       flex;
+  align-items:   center;
+  gap:           var(--space-1);
+  background:    var(--color-surface-raised);
+  border:        1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  padding:       7px var(--space-4);
+  font-size:     var(--text-sm);
+  font-family:   var(--font-body);
+  font-weight:   var(--weight-medium);
+  color:         var(--color-text-secondary);
+  cursor:        pointer;
+  white-space:   nowrap;
+  box-shadow:    var(--shadow-xs);
+  transition:
+    background   var(--duration-fast) var(--ease-smooth),
+    border-color var(--duration-fast) var(--ease-smooth),
+    color        var(--duration-fast) var(--ease-smooth);
+}
+
+.aura-prompt-chip:hover {
+  background:   var(--color-primary-subtle);
+  border-color: var(--color-primary);
+  color:        var(--color-primary);
+}
+
+.aura-prompt-chip__icon {
+  font-size: var(--text-md);
+}

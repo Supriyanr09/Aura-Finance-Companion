@@ -1,0 +1,261 @@
+/* ═══════════════════════════════════════════════════════════════
+   primitives.css
+   Badge · Button · Avatar · IconBox · MetricCell
+   ProgressBar · InsightStrip · SectionOverline
+   No inline styles needed — all variants covered by modifier classes.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Badge ──────────────────────────────────────────────────── */
+.badge {
+  display:       inline-flex;
+  align-items:   center;
+  gap:           var(--space-1);
+  padding:       2px 8px;
+  border-radius: var(--radius-full);
+  font-size:     var(--text-xs);
+  font-weight:   var(--weight-bold);
+  line-height:   var(--leading-normal);
+  white-space:   nowrap;
+}
+
+.badge--success { background: var(--color-success-subtle); color: var(--color-success); }
+.badge--warning { background: var(--color-warning-subtle); color: var(--color-warning); }
+.badge--danger  { background: var(--color-danger-subtle);  color: var(--color-danger);  }
+.badge--info    { background: var(--color-info-subtle);    color: var(--color-info);    }
+.badge--brand   { background: var(--color-primary-subtle); color: var(--color-primary); }
+.badge--neutral {
+  background: var(--color-surface-raised);
+  color:      var(--color-text-secondary);
+  border:     1px solid var(--color-border);
+}
+
+/* ── Button ─────────────────────────────────────────────────── */
+.btn {
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  gap:             var(--space-2);
+  border-radius:   var(--radius-md);
+  font-family:     var(--font-body);
+  font-weight:     var(--weight-semibold);
+  font-size:       var(--text-base);
+  line-height:     var(--leading-none);
+  border:          1px solid transparent;
+  cursor:          pointer;
+  white-space:     nowrap;
+  transition:
+    background   var(--duration-fast) var(--ease-smooth),
+    border-color var(--duration-fast) var(--ease-smooth),
+    box-shadow   var(--duration-fast) var(--ease-smooth),
+    color        var(--duration-fast) var(--ease-smooth),
+    opacity      var(--duration-fast) var(--ease-smooth);
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn--sm   { padding: var(--space-1) var(--space-3); font-size: var(--text-sm); }
+.btn--md   { padding: var(--space-2) var(--space-4); }
+.btn--lg   { padding: var(--space-3) var(--space-6); font-size: var(--text-md); }
+.btn--full { width: 100%; }
+
+.btn--icon {
+  padding:       var(--space-2);
+  width:         34px;
+  height:        34px;
+  border-radius: var(--radius-md);
+}
+
+.btn--primary {
+  background: var(--color-primary);
+  color:      var(--color-text-inverse);
+  box-shadow: var(--shadow-primary);
+}
+.btn--primary:hover:not(:disabled) { background: var(--color-primary-hover); }
+
+.btn--ghost {
+  background:   transparent;
+  border-color: var(--color-border);
+  color:        var(--color-text-secondary);
+}
+.btn--ghost:hover:not(:disabled) {
+  background:   var(--color-hover);
+  color:        var(--color-text-primary);
+  border-color: var(--color-border-strong);
+}
+
+.btn--subtle {
+  background:   var(--color-primary-subtle);
+  border-color: var(--color-primary-border);
+  color:        var(--color-primary);
+}
+.btn--subtle:hover:not(:disabled) { filter: brightness(0.95); }
+
+.btn--success-subtle {
+  background:   var(--color-success-subtle);
+  border-color: var(--color-success-border);
+  color:        var(--color-success);
+}
+.btn--success-subtle:hover:not(:disabled) { filter: brightness(0.95); }
+
+/* ── Avatar ─────────────────────────────────────────────────── */
+.avatar {
+  border-radius:   var(--radius-full);
+  background:      var(--gradient-brand);
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  font-weight:     var(--weight-black);
+  color:           var(--color-text-inverse);
+  flex-shrink:     0;
+  font-family:     var(--font-display);
+}
+.avatar--sm  { width: 26px; height: 26px; font-size: var(--text-2xs); }
+.avatar--md  { width: 32px; height: 32px; font-size: var(--text-sm);  }
+.avatar--lg  { width: 40px; height: 40px; font-size: var(--text-base);}
+
+/* ── IconBox ────────────────────────────────────────────────── */
+.icon-box {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  flex-shrink:     0;
+  border-radius:   var(--radius-md);
+}
+.icon-box--sm { width: 32px; height: 32px; }
+.icon-box--md { width: 38px; height: 38px; }
+.icon-box--lg { width: 44px; height: 44px; }
+
+.icon-box--brand   { background: var(--color-primary-subtle); }
+.icon-box--success { background: var(--color-success-subtle); }
+.icon-box--warning { background: var(--color-warning-subtle); }
+.icon-box--danger  { background: var(--color-danger-subtle);  }
+.icon-box--info    { background: var(--color-info-subtle);    }
+.icon-box--neutral { background: var(--color-surface-raised); }
+
+/* Icon color classes — used on Phosphor icon elements */
+.icon--brand   { color: var(--color-primary); }
+.icon--success { color: var(--color-success); }
+.icon--warning { color: var(--color-warning); }
+.icon--danger  { color: var(--color-danger);  }
+.icon--info    { color: var(--color-info);    }
+.icon--violet  { color: var(--color-violet);  }
+
+/* ── MetricCell ─────────────────────────────────────────────── */
+.metric-cell {
+  background:     var(--color-surface-raised);
+  border:         1px solid var(--color-border);
+  border-radius:  var(--radius-md);
+  padding:        var(--space-3);
+  display:        flex;
+  flex-direction: column;
+  gap:            var(--space-1);
+}
+
+.metric-cell__label {
+  font-size:      var(--text-2xs);
+  font-weight:    var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wider);
+  color:          var(--color-text-tertiary);
+}
+
+.metric-cell__value {
+  font-family: var(--font-display);
+  font-size:   var(--text-lg);
+  font-weight: var(--weight-bold);
+  color:       var(--color-text-primary);
+  line-height: var(--leading-none);
+}
+
+.metric-cell__sub {
+  font-size: var(--text-2xs);
+  color:     var(--color-text-tertiary);
+}
+
+.metric-cell__value--success { color: var(--color-success); }
+.metric-cell__value--danger  { color: var(--color-danger);  }
+.metric-cell__value--warning { color: var(--color-warning); }
+.metric-cell__value--brand   { color: var(--color-primary); }
+.metric-cell__value--info    { color: var(--color-info);    }
+
+/* ── ProgressBar ────────────────────────────────────────────── */
+.progress-bar {
+  height:        5px;
+  background:    var(--color-surface-overlay);
+  border-radius: var(--radius-full);
+  overflow:      hidden;
+}
+.progress-bar--thin { height: 4px; }
+
+.progress-bar__fill {
+  height:        100%;
+  border-radius: var(--radius-full);
+  /* width is set via --progress-pct custom property on the element */
+  width:         var(--progress-pct, 0%);
+  transition:    width 1.2s var(--ease-out);
+}
+
+/* Fill color variants */
+.progress-bar__fill--success { background: linear-gradient(90deg, var(--color-success),        #6EE7B7); }
+.progress-bar__fill--danger  { background: linear-gradient(90deg, var(--color-danger),  #FB7185); }
+.progress-bar__fill--warning { background: linear-gradient(90deg, var(--color-warning), #FCD34D); }
+.progress-bar__fill--brand   { background: linear-gradient(90deg, var(--color-primary), var(--color-violet)); }
+.progress-bar__fill--info    { background: linear-gradient(90deg, var(--color-info),    #67E8F9); }
+
+/* Util bar fill — threshold-based via modifier */
+.progress-bar__fill--util-low    { background: var(--color-success); }
+.progress-bar__fill--util-medium { background: var(--color-warning); }
+.progress-bar__fill--util-high   { background: var(--color-danger);  }
+
+/* ── InsightStrip ───────────────────────────────────────────── */
+.insight-strip {
+  display:       flex;
+  align-items:   flex-start;
+  gap:           var(--space-2);
+  padding:       var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size:     var(--text-sm);
+  color:         var(--color-text-secondary);
+  line-height:   var(--leading-relaxed);
+  margin-top:    var(--space-3);
+}
+
+.insight-strip__dot {
+  width:         6px;
+  height:        6px;
+  border-radius: var(--radius-full);
+  flex-shrink:   0;
+  margin-top:    4px;
+}
+
+.insight-strip--success {
+  background: var(--color-success-subtle);
+  border:     1px solid var(--color-success-border);
+}
+.insight-strip--success .insight-strip__dot { background: var(--color-success); }
+
+.insight-strip--brand {
+  background: var(--color-primary-subtle);
+  border:     1px solid var(--color-primary-border);
+}
+.insight-strip--brand .insight-strip__dot { background: var(--color-primary); }
+
+/* ── SectionOverline ────────────────────────────────────────── */
+.section-overline {
+  font-size:      var(--text-2xs);
+  font-weight:    var(--weight-semibold);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color:          var(--color-text-tertiary);
+  margin-bottom:  var(--space-3);
+}
+
+/* ── Utility ────────────────────────────────────────────────── */
+.text-danger  { color: var(--color-danger);  }
+.text-success { color: var(--color-success); }
+.text-warning { color: var(--color-warning); }
+.text-brand   { color: var(--color-primary); }
+.text-bold    { font-weight: var(--weight-bold); }
+
+/* Position utility used for badge overlay in nav */
+.pos-relative { position: relative; }
+.flex-shrink-0 { flex-shrink: 0; }

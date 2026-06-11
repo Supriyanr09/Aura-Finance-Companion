@@ -1,0 +1,121 @@
+/* ═══════════════════════════════════════════════════════════════
+   AURA FINANCE — THEME SYSTEM
+   Populates semantic tokens from tokens.css.
+   Light theme is DEFAULT. Dark via [data-theme="dark"].
+   No component reads palette colors directly.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ────────────────────────────────────────────────────────────
+   LIGHT THEME (default)
+   ──────────────────────────────────────────────────────────── */
+:root,
+[data-theme="light"] {
+
+  --color-background:      #FAFAF8;
+  --color-surface:         #FFFFFF;
+  --color-surface-raised:  #F5F5F3;
+  --color-surface-overlay: #ECECEA;
+  --color-sidebar:         #FFFFFF;
+  --color-topbar:          #FFFFFF;
+
+  --color-border:          #ECECEC;
+  --color-border-strong:   #D8D8D8;
+  --color-border-focus:    rgba(109, 93, 252, 0.45);
+
+  --color-text-primary:    #1F2937;
+  --color-text-secondary:  #6B7280;
+  --color-text-tertiary:   #9CA3AF;
+  --color-text-disabled:   #D1D5DB;
+
+  --color-primary:         #6D5DFC;
+  --color-primary-hover:   #5B4EF7;
+  --color-primary-subtle:  rgba(109, 93, 252, 0.08);
+  --color-primary-border:  rgba(109, 93, 252, 0.20);
+
+  --color-success:         #10B981;
+  --color-success-subtle:  rgba(16, 185, 129, 0.08);
+  --color-success-border:  rgba(16, 185, 129, 0.18);
+
+  --color-warning:         #F59E0B;
+  --color-warning-subtle:  rgba(245, 158, 11, 0.08);
+  --color-warning-border:  rgba(245, 158, 11, 0.18);
+
+  --color-danger:          #F43F5E;
+  --color-danger-subtle:   rgba(244, 63, 94, 0.08);
+  --color-danger-border:   rgba(244, 63, 94, 0.18);
+
+  --color-info:            #3B82F6;
+  --color-info-subtle:     rgba(59, 130, 246, 0.08);
+  --color-info-border:     rgba(59, 130, 246, 0.18);
+
+  /* Stability Score — teal band (score 75–89) */
+  --color-stability-teal:        #14B8A6;
+  --color-stability-teal-subtle: rgba(20, 184, 166, 0.08);
+  --color-stability-teal-border: rgba(20, 184, 166, 0.20);
+
+  --color-hover:           rgba(0, 0, 0, 0.03);
+  --color-hover-primary:   rgba(109, 93, 252, 0.05);
+
+  --shadow-xs:      0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-sm:      0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md:      0 4px 12px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-lg:      0 10px 28px rgba(0, 0, 0, 0.09), 0 4px 10px rgba(0, 0, 0, 0.05);
+  --shadow-primary: 0 4px 16px rgba(109, 93, 252, 0.22);
+}
+
+/* ────────────────────────────────────────────────────────────
+   DARK THEME
+   ──────────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+
+  --color-background:      #060818;
+  --color-surface:         #0D1428;
+  --color-surface-raised:  #111B30;
+  --color-surface-overlay: #162038;
+  --color-sidebar:         #0A0F1E;
+  --color-topbar:          #0A0F1E;
+
+  --color-border:          rgba(255, 255, 255, 0.07);
+  --color-border-strong:   rgba(255, 255, 255, 0.13);
+  --color-border-focus:    rgba(124, 111, 253, 0.55);
+
+  --color-text-primary:    #F1F5FF;
+  --color-text-secondary:  #8B9DC3;
+  --color-text-tertiary:   #4A5878;
+  --color-text-disabled:   #2A3555;
+
+  --color-primary:         #7C6FFD;
+  --color-primary-hover:   #6D5DFC;
+  --color-primary-subtle:  rgba(124, 111, 253, 0.12);
+  --color-primary-border:  rgba(124, 111, 253, 0.25);
+
+  --color-success:         #10B981;
+  --color-success-subtle:  rgba(16, 185, 129, 0.12);
+  --color-success-border:  rgba(16, 185, 129, 0.22);
+
+  --color-warning:         #F59E0B;
+  --color-warning-subtle:  rgba(245, 158, 11, 0.12);
+  --color-warning-border:  rgba(245, 158, 11, 0.22);
+
+  --color-danger:          #F43F5E;
+  --color-danger-subtle:   rgba(244, 63, 94, 0.12);
+  --color-danger-border:   rgba(244, 63, 94, 0.22);
+
+  --color-info:            #3B82F6;
+  --color-info-subtle:     rgba(59, 130, 246, 0.12);
+  --color-info-border:     rgba(59, 130, 246, 0.22);
+
+  /* Stability Score — teal band (score 75–89) */
+  --color-stability-teal:        #2DD4BF;
+  --color-stability-teal-subtle: rgba(45, 212, 191, 0.12);
+  --color-stability-teal-border: rgba(45, 212, 191, 0.22);
+
+  --color-hover:           rgba(255, 255, 255, 0.03);
+  --color-hover-primary:   rgba(124, 111, 253, 0.08);
+
+  --shadow-xs:      0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-sm:      0 1px 4px rgba(0, 0, 0, 0.50);
+  --shadow-md:      0 4px 16px rgba(0, 0, 0, 0.55);
+  --shadow-lg:      0 8px 32px rgba(0, 0, 0, 0.70);
+  --shadow-primary: 0 4px 20px rgba(109, 93, 252, 0.35);
+}
