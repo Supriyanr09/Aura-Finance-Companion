@@ -1,104 +1,130 @@
-// ═══════════════════════════════════════════════════════════════
 // HeroAnimationBackground.jsx
 //
-// Jitter Animated Repeater–style kinetic typography grid.
+// A sparse typographic field for the Aura Finance landing page.
 //
-// DESIGN MODEL:
-//   A sparse 2D field of currency values. Every value is a column
-//   of vertically cycling digits. The stagger delay is a function
-//   of (col + row) so the animation ripples diagonally across the
-//   field — the Jitter "repeater wave" effect.
+// MENTAL MODEL:
+//   This is not a grid of currency values.
+//   This is not a data visualization.
+//   This is a field of characters distributed across space.
+//   Some characters occasionally slip — a single quiet vertical
+//   movement, like a departures board updating one entry.
+//   The slips are infrequent, non-synchronized, non-sequential.
+//   The eye perceives aliveness, not counting.
 //
-// TYPOGRAPHY — identical everywhere:
-//   Font:    Space Grotesk 700
-//   Size:    48px
-//   Color:   #FFFFFF
-//   Opacity: 0.11 (single value, no layering)
+// COMPOSITION:
+//   ~50 glyph positions scattered across the viewport.
+//   Roughly half are active (can slip). Half are static.
+//   Center zone is clear — reserved for brand content.
+//   Positions are distributed to avoid obvious row/column reads.
+//   No two adjacent glyphs share the same slip interval.
 //
-// MOTION — vertical only:
-//   Each digit column cycles 0→9 in a CSS keyframe loop.
-//   Phase offset = -(col × A + row × B) seconds.
-//   No horizontal movement. No scrolling. No marquee.
+// TYPOGRAPHY: uniform everywhere.
+//   Space Grotesk 700 · 44px · #FFFFFF · opacity 0.10
 //
-// SPACING — generous:
-//   Columns: ~220px apart
-//   Rows:    ~140px apart
-//   Grid is wider than viewport so edges are always populated.
-//   Center zone: ~500×320px area left clear by vignette.
-// ═══════════════════════════════════════════════════════════════
-import CurrencyCell from './CurrencyCell'
+// MOTION: vertical only. Slip = translateY one slot, then reset.
+//   Duration: 380ms. Easing: standard ease. No bounce.
+//   Intervals: 3.5s – 9s range. Varied per glyph.
+//   ~50% of active glyphs slip at any given moment across the field.
 
-// ── Grid parameters ───────────────────────────────────────────
-const FONT_SIZE_PX   = 48      // single consistent size
-const LINE_HEIGHT_PX = 52      // digitH — slightly more than font size
-const OPACITY        = 0.11    // single consistent opacity
-const COL_GAP        = 224     // px between cell left edges
-const ROW_GAP        = 148     // px between row top edges
-const GRID_COLS      = 8       // enough to overflow viewport width
-const GRID_ROWS      = 8       // enough to overflow viewport height
+import GlyphSlip from './GlyphSlip'
 
-// Stagger: how many seconds of phase shift per column and per row.
-// The diagonal wave comes from combining both.
-const STAGGER_COL    = 0.38    // s per column step
-const STAGGER_ROW    = 0.55    // s per row step
+const CHAR_H  = 52   // px — one character slot height
+const FS      = 44   // font-size px
+const OPACITY = 0.10 // single opacity across entire field
 
-// Base cycle duration for one digit column (seconds for 0→9)
-const CYCLE_DURATION = 2.8
+// ── Glyph field definition ────────────────────────────────────
+//
+// Positions are expressed as percentage of viewport (vw, vh).
+// They are intentionally offset — no clean row or column lines.
+// The center zone (roughly 38vw–62vw × 36vh–64vh) is avoided
+// so the brand content area stays clear.
+//
+// active: whether this glyph ever slips
+// delay:  ms before first slip (phase offset)
+// every:  ms between slips (slip interval)
+// seed:   which glyph to start with
 
-// Column stagger within a single cell's digits
-const COL_STAGGER    = 0.14
+const GLYPHS = [
+  // ── top band ────────────────────────────────────────────────
+  { id:  0, x:  3,   y:  5,  active: false, delay: 0,    every: 0,    seed:  0 },
+  { id:  1, x: 14,   y:  3,  active: true,  delay: 1200, every: 7200, seed:  3 },
+  { id:  2, x: 26,   y:  7,  active: false, delay: 0,    every: 0,    seed:  6 },
+  { id:  3, x: 42,   y:  2,  active: true,  delay: 3800, every: 8500, seed:  9 },
+  { id:  4, x: 58,   y:  6,  active: false, delay: 0,    every: 0,    seed: 12 },
+  { id:  5, x: 73,   y:  3,  active: true,  delay: 900,  every: 6100, seed: 15 },
+  { id:  6, x: 86,   y:  7,  active: false, delay: 0,    every: 0,    seed: 18 },
+  { id:  7, x: 96,   y:  4,  active: true,  delay: 2400, every: 7800, seed: 21 },
 
-// Currency symbol pool — assigned deterministically by cell position
-const SYMBOLS = ['₹', '$', '€', '¥', '£']
+  // ── upper quarter ───────────────────────────────────────────
+  { id:  8, x:  7,   y: 16,  active: true,  delay: 600,  every: 5400, seed: 24 },
+  { id:  9, x: 19,   y: 14,  active: false, delay: 0,    every: 0,    seed: 27 },
+  { id: 10, x: 31,   y: 18,  active: true,  delay: 4200, every: 8800, seed: 30 },
+  { id: 11, x: 71,   y: 15,  active: true,  delay: 1700, every: 6600, seed: 33 },
+  { id: 12, x: 83,   y: 19,  active: false, delay: 0,    every: 0,    seed: 36 },
+  { id: 13, x: 93,   y: 13,  active: true,  delay: 3100, every: 7400, seed: 39 },
 
-// Digit string pool — varied lengths for visual rhythm
-// These are starting seeds; the rolling means the actual displayed
-// digit is always moving, so the seed only affects initial phase.
-const DIGIT_SEEDS = [
-  '12543', '4382',  '91200',
-  '803200','2185',  '87340',
-  '31090', '5670',  '124500',
-  '8820',  '3291',  '99400',
-  '22780', '54300', '14230',
-  '71500', '18440', '6115',
-  '55820', '24600', '44870',
+  // ── upper-mid band ──────────────────────────────────────────
+  { id: 14, x:  2,   y: 27,  active: false, delay: 0,    every: 0,    seed: 42 },
+  { id: 15, x: 11,   y: 29,  active: true,  delay: 2900, every: 9000, seed: 45 },
+  { id: 16, x: 23,   y: 25,  active: true,  delay: 500,  every: 5800, seed: 48 },
+  { id: 17, x: 34,   y: 28,  active: false, delay: 0,    every: 0,    seed: 51 },
+  // center gap 38–62 x, 26–30 y
+  { id: 18, x: 65,   y: 27,  active: false, delay: 0,    every: 0,    seed: 54 },
+  { id: 19, x: 76,   y: 25,  active: true,  delay: 3600, every: 6800, seed: 57 },
+  { id: 20, x: 88,   y: 29,  active: true,  delay: 1100, every: 8200, seed: 60 },
+  { id: 21, x: 97,   y: 26,  active: false, delay: 0,    every: 0,    seed: 63 },
+
+  // ── mid flanks (center kept clear) ──────────────────────────
+  { id: 22, x:  4,   y: 39,  active: true,  delay: 4500, every: 7000, seed: 66 },
+  { id: 23, x: 14,   y: 42,  active: false, delay: 0,    every: 0,    seed: 69 },
+  { id: 24, x: 25,   y: 38,  active: true,  delay: 800,  every: 5200, seed: 72 },
+  { id: 25, x: 35,   y: 44,  active: false, delay: 0,    every: 0,    seed: 75 },
+  // center gap: 36–64 x, 36–64 y — completely empty
+  { id: 26, x: 64,   y: 40,  active: false, delay: 0,    every: 0,    seed: 78 },
+  { id: 27, x: 74,   y: 43,  active: true,  delay: 2200, every: 6400, seed: 81 },
+  { id: 28, x: 85,   y: 38,  active: false, delay: 0,    every: 0,    seed: 84 },
+  { id: 29, x: 95,   y: 41,  active: true,  delay: 3300, every: 8600, seed: 87 },
+
+  { id: 30, x:  6,   y: 52,  active: false, delay: 0,    every: 0,    seed: 90 },
+  { id: 31, x: 16,   y: 55,  active: true,  delay: 1500, every: 7600, seed: 93 },
+  { id: 32, x: 27,   y: 50,  active: true,  delay: 4000, every: 5600, seed: 96 },
+  { id: 33, x: 36,   y: 54,  active: false, delay: 0,    every: 0,    seed: 99 },
+  // center gap continues
+  { id: 34, x: 63,   y: 51,  active: true,  delay: 700,  every: 9200, seed:102 },
+  { id: 35, x: 73,   y: 55,  active: false, delay: 0,    every: 0,    seed:105 },
+  { id: 36, x: 84,   y: 50,  active: true,  delay: 2700, every: 6200, seed:108 },
+  { id: 37, x: 94,   y: 53,  active: false, delay: 0,    every: 0,    seed:111 },
+
+  // ── lower-mid band ──────────────────────────────────────────
+  { id: 38, x:  3,   y: 64,  active: true,  delay: 1900, every: 8000, seed:114 },
+  { id: 39, x: 13,   y: 67,  active: false, delay: 0,    every: 0,    seed:117 },
+  { id: 40, x: 24,   y: 63,  active: true,  delay: 3500, every: 5000, seed:120 },
+  { id: 41, x: 35,   y: 66,  active: false, delay: 0,    every: 0,    seed:123 },
+  { id: 42, x: 64,   y: 64,  active: false, delay: 0,    every: 0,    seed:126 },
+  { id: 43, x: 75,   y: 67,  active: true,  delay: 600,  every: 7300, seed:129 },
+  { id: 44, x: 87,   y: 63,  active: true,  delay: 4100, every: 8900, seed:132 },
+  { id: 45, x: 96,   y: 66,  active: false, delay: 0,    every: 0,    seed:135 },
+
+  // ── lower quarter ───────────────────────────────────────────
+  { id: 46, x:  8,   y: 77,  active: false, delay: 0,    every: 0,    seed:138 },
+  { id: 47, x: 20,   y: 75,  active: true,  delay: 2100, every: 6700, seed:141 },
+  { id: 48, x: 32,   y: 79,  active: false, delay: 0,    every: 0,    seed:144 },
+  { id: 49, x: 69,   y: 76,  active: true,  delay: 1300, every: 5900, seed:147 },
+  { id: 50, x: 81,   y: 80,  active: false, delay: 0,    every: 0,    seed:150 },
+  { id: 51, x: 91,   y: 75,  active: true,  delay: 3900, every: 7100, seed:153 },
+
+  // ── bottom band ─────────────────────────────────────────────
+  { id: 52, x:  5,   y: 88,  active: true,  delay: 1000, every: 8300, seed:156 },
+  { id: 53, x: 17,   y: 91,  active: false, delay: 0,    every: 0,    seed:159 },
+  { id: 54, x: 29,   y: 87,  active: false, delay: 0,    every: 0,    seed:162 },
+  { id: 55, x: 44,   y: 92,  active: true,  delay: 4400, every: 6900, seed:165 },
+  { id: 56, x: 59,   y: 88,  active: false, delay: 0,    every: 0,    seed:168 },
+  { id: 57, x: 72,   y: 91,  active: true,  delay: 2500, every: 5500, seed:171 },
+  { id: 58, x: 84,   y: 87,  active: false, delay: 0,    every: 0,    seed:174 },
+  { id: 59, x: 95,   y: 92,  active: true,  delay: 700,  every: 8700, seed:177 },
 ]
 
-function getSymbol(col, row) {
-  return SYMBOLS[(col * 3 + row * 2) % SYMBOLS.length]
-}
-
-function getDigits(col, row) {
-  return DIGIT_SEEDS[(col + row * GRID_COLS) % DIGIT_SEEDS.length]
-}
-
-// ── Grid offset so it's centered on the viewport ─────────────
-// Total grid width  ≈ GRID_COLS × COL_GAP
-// Total grid height ≈ GRID_ROWS × ROW_GAP
-// We start the grid at a negative offset so it overhangs both
-// sides of the viewport, ensuring no visible edges.
-const GRID_START_X = -((GRID_COLS * COL_GAP - window.innerWidth)  / 2) - COL_GAP
-const GRID_START_Y = -((GRID_ROWS * ROW_GAP - window.innerHeight) / 2) - ROW_GAP / 2
-
 export default function HeroAnimationBackground() {
-  // Build flat cell list
-  const cells = []
-  for (let row = 0; row < GRID_ROWS; row++) {
-    for (let col = 0; col < GRID_COLS; col++) {
-      // Phase offset: diagonal wave — later cols and later rows start later
-      const phaseDelay = col * STAGGER_COL + row * STAGGER_ROW
-
-      cells.push({
-        key:   `${col}-${row}`,
-        x:     GRID_START_X + col * COL_GAP,
-        y:     GRID_START_Y + row * ROW_GAP,
-        symbol: getSymbol(col, row),
-        digits: getDigits(col, row),
-        baseDelay: phaseDelay,
-      })
-    }
-  }
-
   return (
     <div
       aria-hidden="true"
@@ -111,96 +137,67 @@ export default function HeroAnimationBackground() {
         zIndex:         0,
       }}
     >
-      {/* ── Typography grid ───────────────────────────────── */}
-      <div
-        style={{
-          position:  'absolute',
-          top:        0,
-          left:       0,
-          width:     '100%',
-          height:    '100%',
-          color:     '#FFFFFF',
-          fontSize:  `${FONT_SIZE_PX}px`,
-          opacity:    OPACITY,
-        }}
-      >
-        {cells.map((cell) => (
-          <div
-            key={cell.key}
-            style={{
-              position: 'absolute',
-              left:     `${cell.x}px`,
-              top:      `${cell.y}px`,
-            }}
-          >
-            <CurrencyCell
-              symbol={cell.symbol}
-              digits={cell.digits}
-              baseDelay={cell.baseDelay}
-              colStagger={COL_STAGGER}
-              cycleDuration={CYCLE_DURATION}
-              digitH={LINE_HEIGHT_PX}
-            />
-          </div>
-        ))}
-      </div>
+      {/* ── Glyph field ───────────────────────────────────── */}
+      {GLYPHS.map((g) => (
+        <div
+          key={g.id}
+          style={{
+            position:   'absolute',
+            left:       `${g.x}vw`,
+            top:        `${g.y}vh`,
+            fontFamily: 'var(--font-display)',
+            fontWeight:  700,
+            fontSize:   `${FS}px`,
+            color:      '#FFFFFF',
+            opacity:     OPACITY,
+            lineHeight: `${CHAR_H}px`,
+            userSelect: 'none',
+          }}
+        >
+          <GlyphSlip
+            seed={g.seed}
+            slipDelay={g.delay}
+            slipInterval={g.every}
+            charH={CHAR_H}
+            active={g.active}
+          />
+        </div>
+      ))}
 
-      {/* ── Center vignette — clears the hero content zone ── */}
-      {/* Smooth dark ellipse that erases ~500×320px center  */}
+      {/* ── Center vignette — clears brand content zone ───── */}
       <div
         style={{
           position: 'absolute',
           inset:    0,
-          background: `
-            radial-gradient(
-              ellipse 44% 38% at 50% 50%,
-              #060818        0%,
-              rgba(6,8,24,.93) 22%,
-              rgba(6,8,24,.72) 42%,
-              rgba(6,8,24,.32) 62%,
-              transparent    82%
-            )
-          `,
+          background: `radial-gradient(
+            ellipse 46% 40% at 50% 50%,
+            #060818          0%,
+            rgba(6,8,24,.95) 18%,
+            rgba(6,8,24,.78) 36%,
+            rgba(6,8,24,.35) 58%,
+            transparent      80%
+          )`,
           zIndex: 1,
         }}
       />
 
-      {/* ── Edge fades — hard borders feel cheap ─────────── */}
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0,
-        height: '12%',
-        background: 'linear-gradient(to bottom, #060818, transparent)',
-        zIndex: 1,
-      }} />
-      <div style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0,
-        height: '12%',
-        background: 'linear-gradient(to top, #060818, transparent)',
-        zIndex: 1,
-      }} />
-      <div style={{
-        position: 'absolute', top: 0, left: 0, bottom: 0,
-        width: '6%',
-        background: 'linear-gradient(to right, #060818, transparent)',
-        zIndex: 1,
-      }} />
-      <div style={{
-        position: 'absolute', top: 0, right: 0, bottom: 0,
-        width: '6%',
-        background: 'linear-gradient(to left, #060818, transparent)',
-        zIndex: 1,
-      }} />
+      {/* ── Edge fades ────────────────────────────────────── */}
+      <div style={{ position:'absolute', inset:0, background:
+        'linear-gradient(to bottom, #060818 0%, transparent 10%, transparent 90%, #060818 100%)',
+        zIndex: 1 }} />
+      <div style={{ position:'absolute', inset:0, background:
+        'linear-gradient(to right, #060818 0%, transparent 5%, transparent 95%, #060818 100%)',
+        zIndex: 1 }} />
 
-      {/* ── Ambient brand glow at center ─────────────────── */}
+      {/* ── Ambient brand glow ────────────────────────────── */}
       <div
         style={{
           position:  'absolute',
-          top:       '50%',
-          left:      '50%',
+          top: '50%', left: '50%',
           transform: 'translate(-50%, -50%)',
-          width:     '560px',
-          height:    '320px',
-          background:'radial-gradient(ellipse, rgba(109,93,252,0.07) 0%, transparent 70%)',
+          width:     '520px',
+          height:    '300px',
+          background:'radial-gradient(ellipse, rgba(109,93,252,0.06) 0%, transparent 70%)',
           zIndex:     1,
           pointerEvents: 'none',
         }}
