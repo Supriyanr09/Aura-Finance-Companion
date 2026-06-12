@@ -1,0 +1,473 @@
+/* ═══════════════════════════════════════════════════════════════
+   AURA FINANCE — LANDING PAGE STYLES
+   landing.css
+
+   Scope: All styles for the "/" marketing route only.
+   Architecture:
+     · BEM-style naming under .lp- namespace
+     · All values reference design tokens from tokens.css
+     · No inline styles in any landing component
+     · Font: Black Ops One for brand + tagline (--font-brand)
+             Inter for supporting copy          (--font-body)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Page shell ─────────────────────────────────────────────── */
+.lp {
+  width: 100%;
+  min-height: 100svh;
+  background: var(--palette-dark-900);
+  overflow-x: hidden;
+}
+
+/* ── Hero — full-screen fixed stage ─────────────────────────── */
+.lp-hero {
+  position: relative;
+  width: 100%;
+  height: 100svh;
+  overflow: hidden;
+  background: var(--palette-dark-900);
+}
+
+/* ── Scroll container — tall enough to drive scroll progress ── */
+.lp-scroll-track {
+  height: 500svh;
+  background: var(--palette-dark-900);
+}
+
+/* ── Fixed cinematic layer — sits over scroll track ─────────── */
+.lp-stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--palette-dark-900);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   VIDEO
+   ════════════════════════════════════════════════════════════════ */
+.lp-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  opacity: 0.25;
+  filter: saturate(0.7) brightness(0.85) blur(1px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   OVERLAY LAYERS
+   ════════════════════════════════════════════════════════════════ */
+.lp-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.lp-overlay--base {
+  background: rgba(6, 8, 24, 0.52);
+  z-index: 1;
+}
+
+.lp-overlay--radial {
+  background: radial-gradient(
+    ellipse 90% 73% at 50% 50%,
+    transparent            0%,
+    transparent           28%,
+    rgba(6, 8, 24, 0.18)  48%,
+    rgba(6, 8, 24, 0.52)  68%,
+    rgba(6, 8, 24, 0.82)  86%,
+    rgba(6, 8, 24, 0.95) 100%
+  );
+  z-index: 2;
+}
+
+.lp-overlay--edges {
+  background:
+    linear-gradient(to bottom,
+      rgba(6, 8, 24, 0.90)  0%,
+      transparent           12%,
+      transparent           88%,
+      rgba(6, 8, 24, 0.90) 100%
+    ),
+    linear-gradient(to right,
+      rgba(6, 8, 24, 0.70)  0%,
+      transparent            8%,
+      transparent           92%,
+      rgba(6, 8, 24, 0.70) 100%
+    );
+  z-index: 3;
+}
+
+/* Progressive darkening overlay — opacity set via JS custom property */
+.lp-overlay--sequence {
+  background: rgba(6, 8, 24, var(--sequence-overlay, 0));
+  z-index: 10;
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   CINEMATIC INTRO  (CinematicIntro.jsx)
+   ════════════════════════════════════════════════════════════════ */
+.lp-intro {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.lp-intro__stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+/* Wordmark — the central arriving element */
+.lp-intro__wordmark {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  font-family: var(--font-brand);
+  font-size: clamp(50px, 15vw, 137px);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--palette-white);
+  line-height: var(--leading-none);
+  /* Glow deepens on arrival */
+  text-shadow:
+    0 0 60px  rgba(109, 93, 252, 0.35),
+    0 0 120px rgba(109, 93, 252, 0.15);
+}
+
+/* Tagline — assembles from particle aftermath */
+.lp-intro__tagline {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  font-family: var(--font-brand);
+  font-size: clamp(18px, 2.8vw, 26px);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  color: rgba(241, 245, 255, 0.82);
+  line-height: var(--leading-snug);
+}
+
+/* Sub-tagline */
+.lp-intro__sub {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: clamp(11px, 1.4vw, 12px);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: rgba(139, 157, 195, 0.65);
+  line-height: var(--leading-relaxed);
+  max-width: 380px;
+}
+
+/* Particles — positioned from stage center via Framer Motion x/y */
+.lp-intro__particle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  color: var(--palette-white);
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+  will-change: transform, opacity;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   BRAND REVEAL  (BrandReveal.jsx — legacy, kept for reference)
+   ════════════════════════════════════════════════════════════════ */
+.lp-reveal {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.lp-reveal__inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+.lp-reveal__wordmark {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  font-family: var(--font-brand);
+  font-size: clamp(50px, 15vw, 137px);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--palette-white);
+  line-height: var(--leading-none);
+}
+
+/* Burst particles — positioned absolutely from reveal center */
+.lp-reveal__burst {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-family: var(--font-display);
+  font-weight: var(--weight-bold);
+  color: rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   HERO CONTENT  (HeroContent.jsx)
+   ════════════════════════════════════════════════════════════════ */
+.lp-hero-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 15;
+  padding-bottom: 10vh;
+}
+
+.lp-hero-content__cluster {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+  text-align: center;
+  padding: 0 var(--space-6);
+  max-width: 600px;
+  width: 100%;
+}
+
+.lp-hero-content__name {
+  font-family: var(--font-brand);
+  font-size: clamp(50px, 15vw, 137px);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--palette-white);
+  line-height: var(--leading-none);
+}
+
+.lp-hero-content__tagline {
+  font-family: var(--font-brand);
+  font-size: clamp(18px, 2.8vw, 26px);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  color: rgba(241, 245, 255, 0.82);
+  line-height: var(--leading-snug);
+}
+
+.lp-hero-content__sub {
+  font-family: var(--font-body);
+  font-size: clamp(11px, 1.4vw, 12px);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: rgba(139, 157, 195, 0.65);
+  line-height: var(--leading-relaxed);
+  max-width: 380px;
+}
+
+/* Scroll indicator — absolute, pinned to bottom of viewport */
+.lp-hero-content__scroll {
+  position: absolute;
+  bottom: 6vh;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.lp-hero-content__scroll-label {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: var(--weight-medium);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(139, 157, 195, 0.75);
+  white-space: nowrap;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   TAGLINE SEQUENCE  (TaglineSequence.jsx)
+   ════════════════════════════════════════════════════════════════ */
+.lp-sequence {
+  position: absolute;
+  inset: 0;
+  z-index: 16;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.lp-sequence__stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lp-sequence__word {
+  font-family: var(--font-brand);
+  font-size: clamp(52px, 9vw, 108px);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--palette-white);
+  line-height: var(--leading-none);
+  user-select: none;
+  white-space: nowrap;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   LOGIN REVEAL  (LoginReveal.jsx)
+   ════════════════════════════════════════════════════════════════ */
+.lp-login {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+  padding: 0 var(--space-6);
+}
+
+.lp-login__card {
+  width: 100%;
+  max-width: 400px;
+  background: rgba(10, 15, 30, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: var(--radius-xl);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  padding: var(--space-10) 36px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+
+.lp-login__header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  text-align: center;
+}
+
+.lp-login__logo {
+  width: 48px;
+  height: 48px;
+  margin-bottom: var(--space-2);
+  filter: drop-shadow(0 0 20px rgba(109, 93, 252, 0.5));
+}
+
+.lp-login__title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-tight);
+  color: var(--palette-white);
+  line-height: var(--leading-tight);
+}
+
+.lp-login__subtitle {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: rgba(139, 157, 195, 0.70);
+}
+
+.lp-login__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.lp-login__input {
+  width: 100%;
+  padding: 13px var(--space-4);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: var(--radius-md);
+  color: var(--palette-white);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  outline: none;
+  transition: border-color var(--duration-fast) var(--ease-smooth);
+}
+
+.lp-login__input::placeholder {
+  color: rgba(139, 157, 195, 0.45);
+}
+
+.lp-login__input:focus {
+  border-color: rgba(109, 93, 252, 0.55);
+}
+
+.lp-login__submit {
+  margin-top: var(--space-1);
+  padding: 14px 0;
+  border-radius: var(--radius-full);
+  border: none;
+  background: var(--gradient-brand);
+  color: var(--palette-white);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  box-shadow: 0 4px 22px rgba(109, 93, 252, 0.42);
+  transition:
+    box-shadow var(--duration-fast) var(--ease-smooth),
+    transform  var(--duration-fast) var(--ease-smooth);
+}
+
+.lp-login__submit:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 30px rgba(109, 93, 252, 0.58);
+}
+
+.lp-login__footer {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-5);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: rgba(139, 157, 195, 0.55);
+}
+
+.lp-login__footer-link {
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-smooth);
+}
+
+.lp-login__footer-link:hover {
+  color: rgba(139, 157, 195, 0.90);
+}
+
+.lp-login__footer-sep {
+  user-select: none;
+}

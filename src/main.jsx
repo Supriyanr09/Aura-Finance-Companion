@@ -6,6 +6,7 @@ import './styles/tokens.css'
 import './styles/themes.css'
 import './styles/globals.css'
 import './styles/animations.css'
+import './styles/landing.css'
 
 import App from './App.jsx'
 
