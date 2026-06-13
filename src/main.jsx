@@ -7,6 +7,7 @@ import './styles/themes.css'
 import './styles/globals.css'
 import './styles/animations.css'
 import './styles/landing.css'
+import './styles/login.css'
 
 import App from './App.jsx'
 

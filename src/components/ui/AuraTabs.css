@@ -1,0 +1,227 @@
+/* ═══════════════════════════════════════════════════════════════
+   AuraTabs.css — Premium tab component — Aura Finance design system.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Container ──────────────────────────────────────────────── */
+.atb {
+  position:       relative;
+  display:        inline-flex;
+  flex-direction: column;
+  height:         48px;
+  border:         none;
+  background:     transparent;
+  overflow:       visible;
+}
+
+.atb--full { display: flex; width: 100%; }
+.atb--lg   { height: 56px; }
+
+/* ── Inner track ────────────────────────────────────────────── */
+.atb__track {
+  position: relative;
+  display:  flex;
+  width:    100%;
+  flex:     1;
+  overflow: visible;
+}
+
+/* ── Base rail ──────────────────────────────────────────────── */
+.atb__rail {
+  width:       100%;
+  height:      1px;
+  flex-shrink: 0;
+  background:  rgba(255,255,255,0.08);
+  position:    relative;
+}
+
+/* ── Animated platinum line ─────────────────────────────────── */
+.atb__line {
+  position:       absolute;
+  bottom:         0;
+  height:         1.5px;
+  border-radius:  2px;
+  pointer-events: none;
+  z-index:        10;
+
+  /* Concentrated centre — hard falloff at edges */
+  background: linear-gradient(
+    90deg,
+    transparent            0%,
+    transparent            18%,
+    rgba(255,255,255,0.55) 32%,
+    #FFFFFF                44%,
+    #FFFFFF                56%,
+    rgba(255,255,255,0.55) 68%,
+    transparent            82%,
+    transparent            100%
+  );
+
+  /* Tight glow — bright, not diffuse */
+  box-shadow:
+    0 0 2px  rgba(255,255,255,1.00),
+    0 0 5px  rgba(255,255,255,0.65),
+    0 0 10px rgba(255,255,255,0.25);
+}
+
+/* Sweep shimmer after tab change */
+.atb__line--sweep::after {
+  content:        '';
+  position:       absolute;
+  top:            -3px;
+  left:           -15%;
+  width:          30%;
+  height:         8px;
+  background: linear-gradient(
+    90deg,
+    transparent            0%,
+    rgba(255,255,255,0.08) 40%,
+    rgba(255,255,255,0.20) 50%,
+    rgba(255,255,255,0.08) 60%,
+    transparent            100%
+  );
+  animation:      atb-sweep 500ms ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes atb-sweep {
+  0%   { left: -15%; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { left: 110%; opacity: 0; }
+}
+
+/* ── Individual tab button ──────────────────────────────────── */
+.atb__tab {
+  position:        relative;
+  z-index:         2;
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  gap:             6px;
+  flex:            1;
+  min-width:       0;
+  height:          100%;
+  padding:         0 var(--space-4);
+  border:          none;
+  background:      transparent;
+  cursor:          pointer;
+  white-space:     nowrap;
+  font-family:     var(--font-body);
+  font-size:       var(--text-sm);
+  font-weight:     var(--weight-medium);
+  letter-spacing:  var(--tracking-wide);
+  color:           var(--color-text-tertiary);
+  transition:      color var(--duration-fast) var(--ease-smooth);
+  outline:         none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.atb__tab:hover:not(.atb__tab--active) { color: var(--color-text-secondary); }
+
+.atb__tab--active {
+  color:       var(--color-text-primary);
+  font-weight: var(--weight-semibold);
+}
+
+.atb__tab:focus-visible {
+  outline:        2px solid rgba(255,255,255,0.18);
+  outline-offset: 2px;
+  border-radius:  2px;
+}
+
+/* ── Hover ghost line ───────────────────────────────────────── */
+.atb__tab::after {
+  content:        '';
+  position:       absolute;
+  bottom:         0;
+  left:           30%;
+  right:          30%;
+  height:         1px;
+  border-radius:  1px;
+  background:     rgba(255,255,255,0.20);
+  opacity:        0;
+  transform:      scaleX(0.3);
+  transition:
+    opacity   180ms var(--ease-smooth),
+    transform 180ms var(--ease-smooth);
+  pointer-events: none;
+}
+
+.atb__tab:hover:not(.atb__tab--active)::after {
+  opacity:   1;
+  transform: scaleX(1);
+}
+
+/* ── Icon ───────────────────────────────────────────────────── */
+.atb__icon {
+  display:     flex;
+  align-items: center;
+  flex-shrink: 0;
+  opacity:     0.42;
+  transition:
+    opacity   var(--duration-fast) var(--ease-smooth),
+    transform var(--duration-fast) var(--ease-smooth);
+}
+
+.atb__tab--active .atb__icon { opacity: 1; transform: scale(1.05); }
+
+/* ── Label ──────────────────────────────────────────────────── */
+.atb__label { display: block; line-height: var(--leading-none); }
+
+/* ── Badge ──────────────────────────────────────────────────── */
+.atb__badge {
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  min-width:       18px;
+  height:          17px;
+  padding:         0 5px;
+  border-radius:   var(--radius-full);
+  font-size:       10px;
+  font-weight:     var(--weight-bold);
+  letter-spacing:  0;
+  background:      var(--color-surface-raised);
+  color:           var(--color-text-tertiary);
+  border:          1px solid var(--color-border);
+  line-height:     1;
+  transition:
+    background   var(--duration-fast) var(--ease-smooth),
+    color        var(--duration-fast) var(--ease-smooth),
+    border-color var(--duration-fast) var(--ease-smooth);
+}
+
+.atb__tab--active .atb__badge {
+  background:   var(--color-primary-subtle);
+  color:        var(--color-primary);
+  border-color: var(--color-primary-border);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   LIGHT THEME
+   ════════════════════════════════════════════════════════════════ */
+[data-theme="light"] .atb__rail { background: rgba(0,0,0,0.10); }
+
+[data-theme="light"] .atb__line {
+  background: linear-gradient(
+    90deg,
+    transparent      0%,
+    transparent      18%,
+    rgba(0,0,0,0.35) 32%,
+    rgba(0,0,0,0.80) 44%,
+    rgba(0,0,0,0.80) 56%,
+    rgba(0,0,0,0.35) 68%,
+    transparent      82%,
+    transparent      100%
+  );
+  box-shadow: 0 0 2px rgba(0,0,0,0.25), 0 0 5px rgba(0,0,0,0.12);
+}
+
+[data-theme="light"] .atb__tab::after { background: rgba(0,0,0,0.15); }
+
+/* ════════════════════════════════════════════════════════════════
+   REDUCED MOTION
+   ════════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .atb__tab, .atb__icon, .atb__badge, .atb__tab::after { transition: none; }
+  .atb__line--sweep::after { animation: none; }
+}

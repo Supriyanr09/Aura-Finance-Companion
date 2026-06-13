@@ -1,0 +1,247 @@
+/* ═══════════════════════════════════════════════════════════════
+   AuraPlatinumButton.css
+   Primary button component — Aura Finance design system.
+
+   Design: Platinum outline · Transparent fill · Premium restraint
+   FIX: border-image kills box-shadow. Use pseudo-element overlay
+        for the gradient border so we can also apply glow effects.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Local tokens ───────────────────────────────────────────── */
+.apb {
+  --apb-text:        #F5F5F5;
+  --apb-shine-color: rgba(255, 255, 255, 0.28);
+  --apb-press-scale: 0.98;
+  --apb-shine-dur:   700ms;
+  --apb-press-dur:   120ms;
+
+  /* Platinum gradient stops */
+  --apb-grad: linear-gradient(
+    180deg,
+    #FFFFFF 0%,
+    #D9D9D9 20%,
+    #8F8F8F 50%,
+    #D9D9D9 80%,
+    #FFFFFF 100%
+  );
+  --apb-grad-hover: linear-gradient(
+    180deg,
+    #FFFFFF 0%,
+    #F0F0F0 18%,
+    #C0C0C0 50%,
+    #F0F0F0 82%,
+    #FFFFFF 100%
+  );
+}
+
+/* ── Base ───────────────────────────────────────────────────── */
+.apb {
+  display:         inline-flex;
+  align-items:     center;
+  justify-content: center;
+  gap:             12px;
+  width:           100%;
+  padding:         0 24px;
+  position:        relative;
+  overflow:        hidden;
+  cursor:          pointer;
+
+  border-radius: 3px;
+  border:        none;           /* border drawn via ::before pseudo */
+  background:    transparent;
+
+  font-family:    var(--font-body, 'Inter', sans-serif);
+  font-size:      var(--text-base, 15px);
+  font-weight:    400;
+  letter-spacing: 0.3px;
+  color:          var(--apb-text);
+  white-space:    nowrap;
+  flex-shrink:    0;
+  text-transform:   uppercase;
+  transition:
+    transform   var(--apb-press-dur) ease,
+    box-shadow  150ms ease;
+}
+
+/* ── Gradient border via ::before ───────────────────────────── */
+/* This technique: inset pseudo covers full area with gradient,   */
+/* then mask clips to just the border ring. Allows box-shadow.    */
+.apb::before {
+  content:       '';
+  position:      absolute;
+  inset:         0;
+  border-radius: inherit;
+  padding:       1px;                          /* border thickness */
+  background:    var(--apb-grad);
+  /* Mask: transparent centre, opaque ring = border only */
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition:    background 150ms ease, opacity 150ms ease;
+}
+
+/* Resting glow — very subtle, polished metal in dark room */
+.apb {
+  box-shadow:
+    0 0 0 0 transparent,
+    inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+/* ── Sizes ──────────────────────────────────────────────────── */
+.apb--lg { height: 56px; font-size: var(--text-md, 16px); }
+.apb--md { height: 48px; }
+.apb--sm { height: 40px; font-size: var(--text-sm, 13px); gap: 8px; padding: 0 18px; }
+
+/* ── Logo mark ──────────────────────────────────────────────── */
+.apb__mark {
+  display:     flex;
+  align-items: center;
+  flex-shrink: 0;
+  opacity:     0.88;
+}
+
+.apb__mark img {
+  width:      20px;
+  height:     20px;
+  object-fit: contain;
+}
+
+.apb__mark-fallback {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  width:           20px;
+  height:          20px;
+  font-family:     var(--font-brand, serif);
+  font-size:       14px;
+  color:           var(--apb-text);
+  opacity:         0.75;
+}
+
+/* ── Label ──────────────────────────────────────────────────── */
+.apb__label { flex: 1; text-align: left; }
+.apb--no-mark .apb__label { text-align: center; flex: none; }
+
+/* ── Arrow ──────────────────────────────────────────────────── */
+.apb__arrow {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  flex-shrink:     0;
+  opacity:         0.6;
+  transition:
+    transform 150ms ease,
+    opacity   150ms ease;
+}
+
+/* ── Shine sweep overlay ─────────────────────────────────────── */
+.apb__shine {
+  position:      absolute;
+  inset:         0;
+  pointer-events: none;
+  overflow:      hidden;
+  border-radius: inherit;
+  z-index:       1;
+}
+
+.apb__shine::after {
+  content:  '';
+  position: absolute;
+  top:      -20%;
+  left:     -120%;
+  width:    70%;
+  height:   140%;
+  background: linear-gradient(
+    105deg,
+    transparent          0%,
+    rgba(255,255,255,0.03) 30%,
+    var(--apb-shine-color) 50%,
+    rgba(255,255,255,0.03) 70%,
+    transparent          100%
+  );
+  opacity: 0;
+}
+
+/* ── Spinner ────────────────────────────────────────────────── */
+.apb__spinner {
+  width:            17px;
+  height:           17px;
+  border:           1.5px solid rgba(245,245,245,0.25);
+  border-top-color: var(--apb-text);
+  border-radius:    50%;
+  animation:        apb-spin 0.75s linear infinite;
+  flex-shrink:      0;
+}
+
+@keyframes apb-spin { to { transform: rotate(360deg); } }
+
+/* ═══════════════════════════════════════════════════════════════
+   HOVER — brighter border + outer glow + shine sweep + arrow shift
+   ═══════════════════════════════════════════════════════════════ */
+.apb:hover:not(:disabled):not(.apb--loading) {
+  /* Outer glow — the "platinum in light" effect */
+  box-shadow:
+    0 0 20px rgba(255,255,255,0.08),
+    0 0 6px  rgba(255,255,255,0.12),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.apb:hover:not(:disabled):not(.apb--loading)::before {
+  background: var(--apb-grad-hover);
+  opacity: 1;
+}
+
+.apb:hover:not(:disabled):not(.apb--loading) .apb__arrow {
+  transform: translateX(4px);
+  opacity:   0.95;
+}
+
+/* Shine fires on hover */
+.apb:hover:not(:disabled):not(.apb--loading) .apb__shine::after {
+  animation: apb-shine var(--apb-shine-dur) ease-out forwards;
+}
+
+@keyframes apb-shine {
+  0%   { left: -120%; opacity: 0; }
+  12%  { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { left:  120%; opacity: 0; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PRESS — tactile scale
+   ═══════════════════════════════════════════════════════════════ */
+.apb:active:not(:disabled):not(.apb--loading) {
+  transform: scale(var(--apb-press-scale));
+  transition-duration: var(--apb-press-dur);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FOCUS — accessible silver ring, no blue
+   ═══════════════════════════════════════════════════════════════ */
+.apb:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px rgba(255,255,255,0.14),
+    0 0 12px rgba(255,255,255,0.06);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DISABLED
+   ═══════════════════════════════════════════════════════════════ */
+.apb:disabled,
+.apb--loading {
+  cursor:         not-allowed;
+  opacity:        0.38;
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   REDUCED MOTION
+   ═══════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .apb, .apb__arrow, .apb__shine::after { transition: none; animation: none; }
+}

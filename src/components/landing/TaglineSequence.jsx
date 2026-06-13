@@ -1,39 +1,88 @@
-// TaglineSequence.jsx — scroll-driven word expansion sequence
+// TaglineSequence.jsx — CTA click transition
+// ═══════════════════════════════════════════════════════════════
+// Triggered when "Begin your journey" is clicked.
+// Three words mount sequentially, immediately animate to their
+// exit state (scale up, fade, blur), then navigate('/login').
+//
+// Fix notes:
+//   · Each word needs both `animate` and `exit` — without `animate`
+//     Framer Motion skips the exit lifecycle.
+//   · onDone fires from onAnimationComplete on the last word's exit,
+//     not from a setTimeout, so it waits for the actual animation end.
+//   · z-index: 50 ensures words render above CinematicIntro (z-index: 20).
+//
+// Props:
+//   active  — boolean: starts the sequence when true
+//   onDone  — called after Prosper finishes animating out
+//
 // Styles: src/styles/landing.css (.lp-sequence__)
-// Note: transform + opacity are scroll-computed, applied via style prop —
-// these are animation values (not design values) so style prop is correct here.
+// ═══════════════════════════════════════════════════════════════
+import { motion, AnimatePresence } from 'framer-motion'
+import { useEffect, useState } from 'react'
 
-function remap(v, inLow, inHigh, outLow, outHigh) {
-  const t = Math.max(0, Math.min(1, (v - inLow) / (inHigh - inLow)))
-  return outLow + t * (outHigh - outLow)
-}
+const WORDS = [
+  { text: 'Explore',  delayMs: 0   },
+  { text: 'Navigate', delayMs: 240 },
+  { text: 'Prosper',  delayMs: 480 },
+]
 
-function WordStage({ word, progress, inStart, inEnd, outStart, outEnd, maxScale = 5.5 }) {
-  const fadeIn  = remap(progress, inStart, inEnd,   0, 1)
-  const fadeOut = remap(progress, outStart, outEnd,  1, 0)
-  const opacity = Math.min(fadeIn, fadeOut)
-  const scale   = 1 + remap(progress, inStart, Math.min(outEnd, 1), 0, maxScale - 1)
+const DURATION = 0.72 // seconds per word
 
-  if (opacity <= 0.005) return null
+export default function TaglineSequence({ active = false, onDone }) {
+  const [mounted, setMounted] = useState([])   // indices currently in DOM
+  const [exiting, setExiting] = useState([])   // indices currently animating out
+
+  useEffect(() => {
+    if (!active) {
+      setMounted([])
+      setExiting([])
+      return
+    }
+
+    const timers = []
+
+    WORDS.forEach((w, i) => {
+      // Mount word after its stagger delay
+      timers.push(setTimeout(() => {
+        setMounted(prev => [...prev, i])
+
+        // Immediately flag it as exiting so exit animation runs right away
+        timers.push(setTimeout(() => {
+          setExiting(prev => [...prev, i])
+          // Remove from DOM after animation completes (DURATION + small buffer)
+          timers.push(setTimeout(() => {
+            setMounted(prev => prev.filter(idx => idx !== i))
+            if (i === WORDS.length - 1) onDone?.()
+          }, DURATION * 1000 + 80))
+        }, 60)) // tiny window so mount paint happens first
+      }, w.delayMs))
+    })
+
+    return () => timers.forEach(clearTimeout)
+  }, [active]) // eslint-disable-line
+
+  if (!active) return null
 
   return (
-    <div
-      className="lp-sequence__stage"
-      style={{ opacity, transform: `scale(${scale})`, willChange: 'transform, opacity' }}
-    >
-      <span className="lp-sequence__word">{word}</span>
-    </div>
-  )
-}
-
-export default function TaglineSequence({ scrollProgress = 0, visible = false }) {
-  if (!visible) return null
-
-  return (
-    <div className="lp-sequence">
-      <WordStage word="Explore."  progress={scrollProgress} inStart={0.00} inEnd={0.18} outStart={0.28} outEnd={0.42} maxScale={4.8} />
-      <WordStage word="Navigate." progress={scrollProgress} inStart={0.38} inEnd={0.55} outStart={0.65} outEnd={0.78} maxScale={5.2} />
-      <WordStage word="Prosper."  progress={scrollProgress} inStart={0.74} inEnd={0.92} outStart={1.10} outEnd={1.30} maxScale={6.0} />
+    <div className="lp-sequence lp-sequence--transition">
+      {WORDS.map((w, i) => (
+        <AnimatePresence key={w.text} mode="sync">
+          {mounted.includes(i) && (
+            <motion.div
+              className="lp-sequence__stage"
+              initial={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+              animate={
+                exiting.includes(i)
+                  ? { opacity: 0, scale: 7, filter: 'blur(16px)' }
+                  : { opacity: 1, scale: 1, filter: 'blur(0px)' }
+              }
+              transition={{ duration: DURATION, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <span className="lp-sequence__word">{w.text}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      ))}
     </div>
   )
 }

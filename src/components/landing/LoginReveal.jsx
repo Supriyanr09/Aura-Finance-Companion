@@ -1,20 +1,15 @@
-// LoginReveal.jsx — inline login, final stage of the journey
-// Styles: src/styles/landing.css (.lp-login__)
+// LoginReveal.jsx — final stage of the landing journey
+// Replaces the inline login form with a pure CTA moment.
+// Clicking "Begin Your Journey" navigates to /login.
+// Styles: src/styles/landing.css (.lp-login__ + .lp-cta__ namespaces)
+
 import { motion } from 'framer-motion'
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 const EASE_OUT = [0.16, 1, 0.3, 1]
 
 export default function LoginReveal({ visible }) {
-  const [email, setEmail]   = useState('')
-  const [password, setPass] = useState('')
-  const navigate            = useNavigate()
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    navigate('/app')
-  }
+  const navigate = useNavigate()
 
   return (
     <motion.div
@@ -25,51 +20,35 @@ export default function LoginReveal({ visible }) {
       style={{ pointerEvents: visible ? 'auto' : 'none' }}
     >
       <motion.div
-        className="lp-login__card"
-        initial={{ y: 24, scale: 0.97 }}
-        animate={{ y: visible ? 0 : 24, scale: visible ? 1 : 0.97 }}
+        className="lp-cta"
+        initial={{ y: 28, scale: 0.96 }}
+        animate={{ y: visible ? 0 : 28, scale: visible ? 1 : 0.96 }}
         transition={{ duration: 0.75, ease: EASE_OUT }}
       >
-        {/* Header */}
-        <div className="lp-login__header">
+        {/* Aura branding */}
+        <div className="lp-cta__brand">
           <img
             src="/Logo.svg"
             alt="Aura"
-            className="lp-login__logo"
-            onError={e => { e.target.style.display = 'none' }}
+            className="lp-cta__logo"
+            onError={e => { e.currentTarget.style.display = 'none' }}
           />
-          <h2 className="lp-login__title">Welcome back</h2>
-          <p className="lp-login__subtitle">Sign in to continue your journey</p>
+          <span className="lp-cta__wordmark">AURA</span>
         </div>
 
-        {/* Form */}
-        <form className="lp-login__form" onSubmit={handleSubmit}>
-          <input
-            className="lp-login__input"
-            type="email"
-            placeholder="Email address"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-          />
-          <input
-            className="lp-login__input"
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={e => setPass(e.target.value)}
-          />
-          <button type="submit" className="lp-login__submit">
-            Enter Aura
-          </button>
-        </form>
+        {/* Tagline */}
+        <p className="lp-cta__tagline">Explore. Navigate. Prosper.</p>
 
-        {/* Footer */}
-        <div className="lp-login__footer">
-          <span className="lp-login__footer-link">Create account</span>
-          <span className="lp-login__footer-sep">·</span>
-          <span className="lp-login__footer-link">Forgot password</span>
-        </div>
+        {/* Primary CTA */}
+        <button
+          className="lp-cta__btn"
+          onClick={() => navigate('/login')}
+        >
+          Begin Your Journey
+        </button>
 
+        {/* Sub-copy */}
+        <p className="lp-cta__sub">Your financial cockpit awaits.</p>
       </motion.div>
     </motion.div>
   )

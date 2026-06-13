@@ -111,3 +111,6 @@ export function InsightStrip({ children, variant = 'brand' }) {
 export function SectionOverline({ children }) {
   return <div className="section-overline">{children}</div>
 }
+
+/* ── AuraTabs — re-exported for convenience ──────────────────── */
+export { default as AuraTabs, AuraTabPanel } from './AuraTabs'
