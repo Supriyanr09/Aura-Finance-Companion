@@ -1,0 +1,79 @@
+/* ═══════════════════════════════════════════════════════════════
+   IconTextButton.css — Aura Finance design system
+   Borderless icon + label button. Ghost, no border, no background.
+   Namespace: .itb-
+   ═══════════════════════════════════════════════════════════════ */
+
+.itb {
+  display:         inline-flex;
+  align-items:     center;
+  gap:             var(--space-1);
+  background:      none;
+  border:          none;
+  outline:         none;
+  padding:         0;
+  cursor:          pointer;
+  font-family:     var(--font-body);
+  font-weight:     var(--weight-medium);
+  letter-spacing:  var(--tracking-wide);
+  line-height:     1;
+  text-decoration: none;
+  transition:      color var(--duration-fast) var(--ease-smooth),
+                   opacity var(--duration-fast) var(--ease-smooth);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.itb:disabled {
+  opacity: 0.35;
+  cursor:  not-allowed;
+}
+
+.itb:focus-visible {
+  outline:        2px solid rgba(109,93,252,0.45);
+  outline-offset: 3px;
+  border-radius:  var(--radius-sm);
+}
+
+/* ── Sizes ──────────────────────────────────────────────────── */
+.itb--sm { font-size: var(--text-xs); gap: var(--space-1); }
+.itb--md { font-size: var(--text-sm); gap: var(--space-2); }
+
+.itb--sm .itb__icon { width: 12px; height: 12px; }
+.itb--md .itb__icon { width: 14px; height: 14px; }
+
+/* ── Icon ───────────────────────────────────────────────────── */
+.itb__icon {
+  display:     flex;
+  align-items: center;
+  flex-shrink: 0;
+  /* Inherits color from button */
+}
+
+/* ── Label ──────────────────────────────────────────────────── */
+.itb__label { display: block; }
+
+/* ── Variants ───────────────────────────────────────────────── */
+
+/* default — white on dark surfaces (login page) */
+.itb--default {
+  color: rgba(255,255,255,0.40);
+}
+.itb--default:hover:not(:disabled) {
+  color: rgba(255,255,255,0.80);
+}
+
+/* subtle — muted, secondary actions */
+.itb--subtle {
+  color: rgba(255,255,255,0.25);
+}
+.itb--subtle:hover:not(:disabled) {
+  color: rgba(255,255,255,0.60);
+}
+
+/* danger — destructive actions */
+.itb--danger {
+  color: rgba(244,63,94,0.60);
+}
+.itb--danger:hover:not(:disabled) {
+  color: rgba(244,63,94,0.90);
+}

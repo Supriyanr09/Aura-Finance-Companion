@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════
 // ThemeContext.jsx
-// Default: light. Optional: dark.
+// Default: DARK. Toggle switches to light.
 // Sets data-theme on <html> so CSS vars cascade.
 // ═══════════════════════════════════════════════
 import { createContext, useContext, useState, useEffect } from 'react'
@@ -8,7 +8,7 @@ import { createContext, useContext, useState, useEffect } from 'react'
 const ThemeCtx = createContext(null)
 
 export function ThemeProvider({ children }) {
-  const [dark, setDark] = useState(false) // LIGHT is default
+  const [dark, setDark] = useState(true) // DARK is default
 
   useEffect(() => {
     document.documentElement.setAttribute(
@@ -16,11 +16,6 @@ export function ThemeProvider({ children }) {
       dark ? 'dark' : 'light'
     )
   }, [dark])
-
-  // Set light on first mount (belt-and-suspenders)
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', 'light')
-  }, [])
 
   return (
     <ThemeCtx.Provider value={{ dark, toggle: () => setDark(d => !d) }}>

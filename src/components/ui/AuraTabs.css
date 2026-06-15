@@ -1,5 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════
-   AuraTabs.css — Premium tab component — Aura Finance design system.
+   AuraTabs.css — Aura Finance design system
+   Platinum line tab component. No data-theme dependency.
+   Two variants: atb--dark (login) and atb--light (dashboard).
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── Container ──────────────────────────────────────────────── */
@@ -14,9 +16,8 @@
 }
 
 .atb--full { display: flex; width: 100%; }
-.atb--lg   { height: 56px; }
 
-/* ── Inner track ────────────────────────────────────────────── */
+/* ── Track ──────────────────────────────────────────────────── */
 .atb__track {
   position: relative;
   display:  flex;
@@ -25,72 +26,26 @@
   overflow: visible;
 }
 
-/* ── Base rail ──────────────────────────────────────────────── */
+/* ── Rail ───────────────────────────────────────────────────── */
 .atb__rail {
   width:       100%;
   height:      1px;
   flex-shrink: 0;
-  background:  rgba(255,255,255,0.08);
-  position:    relative;
 }
 
-/* ── Animated platinum line ─────────────────────────────────── */
+/* ── Platinum line ──────────────────────────────────────────── */
 .atb__line {
   position:       absolute;
-  bottom:         0;
+  bottom:         -1px;
   height:         1.5px;
   border-radius:  2px;
   pointer-events: none;
   z-index:        10;
-
-  /* Concentrated centre — hard falloff at edges */
-  background: linear-gradient(
-    90deg,
-    transparent            0%,
-    transparent            18%,
-    rgba(255,255,255,0.55) 32%,
-    #FFFFFF                44%,
-    #FFFFFF                56%,
-    rgba(255,255,255,0.55) 68%,
-    transparent            82%,
-    transparent            100%
-  );
-
-  /* Tight glow — bright, not diffuse */
-  box-shadow:
-    0 0 2px  rgba(255,255,255,1.00),
-    0 0 5px  rgba(255,255,255,0.65),
-    0 0 10px rgba(255,255,255,0.25);
+  transition:     left 280ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                  width 280ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Sweep shimmer after tab change */
-.atb__line--sweep::after {
-  content:        '';
-  position:       absolute;
-  top:            -3px;
-  left:           -15%;
-  width:          30%;
-  height:         8px;
-  background: linear-gradient(
-    90deg,
-    transparent            0%,
-    rgba(255,255,255,0.08) 40%,
-    rgba(255,255,255,0.20) 50%,
-    rgba(255,255,255,0.08) 60%,
-    transparent            100%
-  );
-  animation:      atb-sweep 500ms ease-out forwards;
-  pointer-events: none;
-}
-
-@keyframes atb-sweep {
-  0%   { left: -15%; opacity: 0; }
-  10%  { opacity: 1; }
-  90%  { opacity: 1; }
-  100% { left: 110%; opacity: 0; }
-}
-
-/* ── Individual tab button ──────────────────────────────────── */
+/* ── Tab button ─────────────────────────────────────────────── */
 .atb__tab {
   position:        relative;
   z-index:         2;
@@ -101,49 +56,38 @@
   flex:            1;
   min-width:       0;
   height:          100%;
-  padding:         0 var(--space-4);
+  padding:         0 16px;
   border:          none;
   background:      transparent;
   cursor:          pointer;
   white-space:     nowrap;
-  font-family:     var(--font-body);
-  font-size:       var(--text-sm);
-  font-weight:     var(--weight-medium);
-  letter-spacing:  var(--tracking-wide);
-  color:           var(--color-text-tertiary);
-  transition:      color var(--duration-fast) var(--ease-smooth);
+  font-family:     'Inter', system-ui, sans-serif;
+  font-size:       13px;
+  font-weight:     500;
+  letter-spacing:  0.05em;
+  transition:      color 200ms ease;
   outline:         none;
   -webkit-tap-highlight-color: transparent;
 }
 
-.atb__tab:hover:not(.atb__tab--active) { color: var(--color-text-secondary); }
-
-.atb__tab--active {
-  color:       var(--color-text-primary);
-  font-weight: var(--weight-semibold);
-}
-
 .atb__tab:focus-visible {
-  outline:        2px solid rgba(255,255,255,0.18);
+  outline:        2px solid rgba(109,93,252,0.4);
   outline-offset: 2px;
-  border-radius:  2px;
+  border-radius:  3px;
 }
 
-/* ── Hover ghost line ───────────────────────────────────────── */
+/* Hover underline ghost */
 .atb__tab::after {
   content:        '';
   position:       absolute;
-  bottom:         0;
-  left:           30%;
-  right:          30%;
+  bottom:         -1px;
+  left:           20%;
+  right:          20%;
   height:         1px;
   border-radius:  1px;
-  background:     rgba(255,255,255,0.20);
   opacity:        0;
-  transform:      scaleX(0.3);
-  transition:
-    opacity   180ms var(--ease-smooth),
-    transform 180ms var(--ease-smooth);
+  transform:      scaleX(0.2);
+  transition:     opacity 160ms ease, transform 160ms ease;
   pointer-events: none;
 }
 
@@ -157,16 +101,14 @@
   display:     flex;
   align-items: center;
   flex-shrink: 0;
-  opacity:     0.42;
-  transition:
-    opacity   var(--duration-fast) var(--ease-smooth),
-    transform var(--duration-fast) var(--ease-smooth);
+  opacity:     0.40;
+  transition:  opacity 200ms ease, transform 200ms ease;
 }
 
 .atb__tab--active .atb__icon { opacity: 1; transform: scale(1.05); }
 
 /* ── Label ──────────────────────────────────────────────────── */
-.atb__label { display: block; line-height: var(--leading-none); }
+.atb__label { display: block; line-height: 1; }
 
 /* ── Badge ──────────────────────────────────────────────────── */
 .atb__badge {
@@ -176,52 +118,109 @@
   min-width:       18px;
   height:          17px;
   padding:         0 5px;
-  border-radius:   var(--radius-full);
+  border-radius:   9999px;
   font-size:       10px;
-  font-weight:     var(--weight-bold);
-  letter-spacing:  0;
-  background:      var(--color-surface-raised);
-  color:           var(--color-text-tertiary);
-  border:          1px solid var(--color-border);
+  font-weight:     700;
   line-height:     1;
-  transition:
-    background   var(--duration-fast) var(--ease-smooth),
-    color        var(--duration-fast) var(--ease-smooth),
-    border-color var(--duration-fast) var(--ease-smooth);
-}
-
-.atb__tab--active .atb__badge {
-  background:   var(--color-primary-subtle);
-  color:        var(--color-primary);
-  border-color: var(--color-primary-border);
 }
 
 /* ════════════════════════════════════════════════════════════════
-   LIGHT THEME
+   DARK VARIANT  — login page, black/dark surfaces
    ════════════════════════════════════════════════════════════════ */
-[data-theme="light"] .atb__rail { background: rgba(0,0,0,0.10); }
+.atb--dark .atb__rail {
+  background: rgba(255,255,255,0.12);
+}
 
-[data-theme="light"] .atb__line {
+.atb--dark .atb__line {
+  background: linear-gradient(
+    90deg,
+    transparent            0%,
+    transparent            12%,
+    rgba(255,255,255,0.45) 28%,
+    #FFFFFF                43%,
+    #FFFFFF                57%,
+    rgba(255,255,255,0.45) 72%,
+    transparent            88%,
+    transparent            100%
+  );
+  box-shadow:
+    0 0 4px  rgba(255,255,255,1),
+    0 0 10px rgba(255,255,255,0.6),
+    0 0 20px rgba(255,255,255,0.25);
+}
+
+.atb--dark .atb__tab {
+  color: rgba(255,255,255,0.38);
+}
+
+.atb--dark .atb__tab:hover:not(.atb__tab--active) {
+  color: rgba(255,255,255,0.65);
+}
+
+.atb--dark .atb__tab--active {
+  color:       #FFFFFF;
+  font-weight: 600;
+}
+
+.atb--dark .atb__tab::after {
+  background: rgba(255,255,255,0.15);
+}
+
+.atb--dark .atb__badge {
+  background: rgba(255,255,255,0.08);
+  color:      rgba(255,255,255,0.40);
+  border:     1px solid rgba(255,255,255,0.10);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   LIGHT VARIANT — dashboard, white/light surfaces (default)
+   ════════════════════════════════════════════════════════════════ */
+.atb--light .atb__rail {
+  background: rgba(0,0,0,0.10);
+}
+
+.atb--light .atb__line {
   background: linear-gradient(
     90deg,
     transparent      0%,
-    transparent      18%,
-    rgba(0,0,0,0.35) 32%,
-    rgba(0,0,0,0.80) 44%,
-    rgba(0,0,0,0.80) 56%,
-    rgba(0,0,0,0.35) 68%,
-    transparent      82%,
+    transparent      12%,
+    rgba(0,0,0,0.22) 28%,
+    rgba(0,0,0,0.75) 43%,
+    rgba(0,0,0,0.75) 57%,
+    rgba(0,0,0,0.22) 72%,
+    transparent      88%,
     transparent      100%
   );
-  box-shadow: 0 0 2px rgba(0,0,0,0.25), 0 0 5px rgba(0,0,0,0.12);
+  box-shadow: 0 0 3px rgba(0,0,0,0.20), 0 0 6px rgba(0,0,0,0.08);
 }
 
-[data-theme="light"] .atb__tab::after { background: rgba(0,0,0,0.15); }
+.atb--light .atb__tab {
+  color: rgba(0,0,0,0.40);
+}
 
-/* ════════════════════════════════════════════════════════════════
-   REDUCED MOTION
-   ════════════════════════════════════════════════════════════════ */
+.atb--light .atb__tab:hover:not(.atb__tab--active) {
+  color: rgba(0,0,0,0.65);
+}
+
+.atb--light .atb__tab--active {
+  color:       rgba(0,0,0,0.88);
+  font-weight: 600;
+}
+
+.atb--light .atb__tab::after {
+  background: rgba(0,0,0,0.12);
+}
+
+.atb--light .atb__badge {
+  background: rgba(0,0,0,0.05);
+  color:      rgba(0,0,0,0.45);
+  border:     1px solid rgba(0,0,0,0.10);
+}
+
+/* ── Reduced motion ─────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  .atb__tab, .atb__icon, .atb__badge, .atb__tab::after { transition: none; }
-  .atb__line--sweep::after { animation: none; }
+  .atb__tab,
+  .atb__icon,
+  .atb__tab::after,
+  .atb__line { transition: none; }
 }

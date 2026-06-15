@@ -58,6 +58,7 @@
   --palette-warm-100:   #F5F5F3;
   --palette-warm-200:   #ECECEA;
   --palette-warm-300:   #DCDCDA;
+  --palette-warm-sand:  #D4C4A8;
 
   --palette-dark-900:   #060818;
   --palette-dark-800:   #0A0F1E;
@@ -122,6 +123,7 @@
   /* Extended palette aliases */
   --color-violet:           #8B5CF6;
   --color-cyan:             #06B6D4;
+  --color-warm-sand:        var(--palette-warm-sand);
 
   /* Hover/interaction surfaces */
   --color-hover:            ;
@@ -173,13 +175,13 @@
   --input-padding-y:  var(--space-3);
 
   /* ─── Border Radius ──────────────────────────────────────── */
-  --radius-xs:   4px;
-  --radius-sm:   8px;
-  --radius-md:   12px;
-  --radius-lg:   16px;
-  --radius-xl:   20px;
-  --radius-2xl:  28px;
-  --radius-full: 9999px;
+  --radius-xs:   2px;
+  --radius-sm:   3px;
+  --radius-md:   4px;
+  --radius-lg:   4px;
+  --radius-xl:   4px;
+  --radius-2xl:  4px;
+  --radius-full: 4px;
 
   /* ─── Shadows — set per-theme in themes.css ──────────────── */
   --shadow-xs:      ;
@@ -190,22 +192,23 @@
 
   /* ─── Typography ─────────────────────────────────────────── */
   --font-display: 'Space Grotesk', system-ui, sans-serif;
-  --font-body:    'Inter', system-ui, sans-serif;
+  --font-body:    'Sora', system-ui, sans-serif;
   --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
   --font-brand:   'Black Ops One', system-ui, sans-serif;
-  --font-sora:      'Sora', system-ui, sans-serif;
 
-  /* ── Type scale — bumped up for readability ── */
-  --text-2xs:  11px;
-  --text-xs:   12px;
-  --text-sm:   13px;
-  --text-base: 15px;
-  --text-md:   17px;
-  --text-lg:   20px;
-  --text-xl:   24px;
-  --text-2xl:  30px;
-  --text-3xl:  38px;
-  --text-4xl:  52px;
+  /* ── Type scale — all values multiples of 2px ── */
+  --text-2xs:  10px;   /* overlines, badges, micro labels   */
+  --text-xs:   12px;   /* captions, helper text             */
+  --text-sm:   14px;   /* secondary body, table cells       */
+  --text-base: 16px;   /* primary body copy                 */
+  --text-md:   18px;   /* large body, card descriptions     */
+  --text-lg:   20px;   /* sub-headings, section intros      */
+  --text-xl:   24px;   /* card titles, modal headings       */
+  --text-2xl:  28px;   /* page sub-titles                   */
+  --text-3xl:  36px;   /* KPI values, score numbers         */
+  --text-4xl:  48px;   /* hero KPI, portfolio total         */
+  --text-5xl:  56px;   /* hero headline                     */
+  --text-6xl:  64px;   /* display / landing                 */
 
   --weight-regular:  400;
   --weight-medium:   500;
@@ -245,5 +248,5 @@
   --topbar-height:           62px;
   --content-max-width:       1200px;
   --content-padding-x:       var(--space-8);
-  --content-padding-y:       var(--space-7);
+  --content-padding-y:       var(--space-6);
 }

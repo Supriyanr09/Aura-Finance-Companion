@@ -4,7 +4,7 @@
    All values come from tokens — no hardcoded values here.
    ═══════════════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700;800&display=swap');
 
 @font-face {
   font-family: 'Black Ops One';
@@ -100,7 +100,7 @@ select {
   height: 100svh;
   width: 100%;
   overflow: hidden;
-  background: var(--color-background);
+  background: #050505;
 }
 
 /* ── Marketing shell — no chrome, no sidebar ─────────────────── */
@@ -123,20 +123,21 @@ select {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  background: var(--color-background);
+  background: #050505;
 }
 
 /* ── Page wrapper ───────────────────────────────────────────── */
 .page-content {
-  padding: var(--content-padding-y) var(--content-padding-x) var(--space-16);
-  max-width: var(--content-max-width);
-  margin: 0 auto;
+  padding:    var(--content-padding-y) var(--content-padding-x) var(--space-16);
+  max-width:  var(--content-max-width);
+  width:      100%;
+  margin:     0 auto;
 }
 
 .page-sections {
-  display: flex;
+  display:        flex;
   flex-direction: column;
-  gap: var(--section-gap);
+  gap:            var(--space-10);
 }
 
 /* ── Two-column grid helpers ────────────────────────────────── */

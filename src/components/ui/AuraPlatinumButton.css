@@ -51,7 +51,7 @@
   background:    transparent;
 
   font-family:    var(--font-body, 'Inter', sans-serif);
-  font-size:      var(--text-base, 15px);
+  font-size:      var(--text-sm, 15px);
   font-weight:    400;
   letter-spacing: 0.3px;
   color:          var(--apb-text);
