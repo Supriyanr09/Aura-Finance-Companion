@@ -14,6 +14,32 @@
   --apb-press-scale: 0.98;
   --apb-shine-dur:   700ms;
   --apb-press-dur:   120ms;
+  --apb-loop-dur:    4s;
+
+  /* Conic gradient for the continuous traveling highlight —
+     wider, brighter arc against transparent, rest of ring invisible.
+     Same platinum stops as --apb-grad, not a new color system. */
+  --apb-loop-grad: conic-gradient(
+    from 0deg,
+    transparent       0deg,
+    transparent     230deg,
+    rgba(255,255,255,0.35) 260deg,
+    rgba(255,255,255,0.85) 295deg,
+    #FFFFFF              315deg,
+    rgba(255,255,255,0.85) 335deg,
+    rgba(255,255,255,0.35) 350deg,
+    transparent     360deg
+  );
+  --apb-loop-grad-hover: conic-gradient(
+    from 0deg,
+    transparent       0deg,
+    transparent     225deg,
+    rgba(255,255,255,0.5) 255deg,
+    #FFFFFF              295deg,
+    #FFFFFF              335deg,
+    rgba(255,255,255,0.5) 345deg,
+    transparent     360deg
+  );
 
   /* Platinum gradient stops */
   --apb-grad: linear-gradient(
@@ -137,6 +163,53 @@
     opacity   150ms ease;
 }
 
+/* ── Continuous platinum border loop (md/lg only) ─────────── */
+/* Two layers: .apb__loop is the masked ring (sharp, like ::before).
+   .apb__loop-glow sits behind it, unmasked, blurred — this is what
+   produces the "light bleeding past the edge" look. Masking and
+   blurring the same element fights itself (mask clips the blur
+   before it can spread), so they're split across two elements. */
+.apb__loop {
+  position:       absolute;
+  inset:          0;
+  border-radius:  inherit;
+  pointer-events: none;
+  overflow:       hidden;
+  z-index:        0;
+  /* Hidden by default — only apb--md / apb--lg opt in below */
+  display:        none;
+}
+
+.apb--md .apb__loop,
+.apb--lg .apb__loop {
+  display: block;
+}
+
+.apb__loop::before {
+  content:       '';
+  position:      absolute;
+  inset:         -50%;
+  width:         200%;
+  height:        200%;
+  background:    var(--apb-loop-grad);
+  animation:     apb-loop-spin var(--apb-loop-dur) linear infinite;
+  transition:    opacity 220ms ease, background 220ms ease;
+}
+
+/* Mask the spinning gradient down to a ring matching the border */
+.apb__loop {
+  padding: 2px;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+@keyframes apb-loop-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ── Shine sweep overlay ─────────────────────────────────────── */
 .apb__shine {
   position:      absolute;
@@ -194,6 +267,11 @@
   opacity: 1;
 }
 
+.apb:hover:not(:disabled):not(.apb--loading) .apb__loop::before {
+  background: var(--apb-loop-grad-hover);
+  opacity: 1;
+}
+
 .apb:hover:not(:disabled):not(.apb--loading) .apb__arrow {
   transform: translateX(4px);
   opacity:   0.95;
@@ -244,4 +322,5 @@
    ═══════════════════════════════════════════════════════════════ */
 @media (prefers-reduced-motion: reduce) {
   .apb, .apb__arrow, .apb__shine::after { transition: none; animation: none; }
+  .apb__loop::before { animation: none; }
 }

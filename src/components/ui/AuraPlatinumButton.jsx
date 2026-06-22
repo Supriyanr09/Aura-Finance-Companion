@@ -57,6 +57,9 @@ export default function AuraPlatinumButton({
       aria-disabled={disabled || loading}
       aria-busy={loading}
     >
+      {/* Continuous platinum border loop — visual only, aria-hidden */}
+      <span className="apb__loop" aria-hidden="true" />
+
       {/* Shine sweep overlay — visual only, aria-hidden */}
       <span className="apb__shine" aria-hidden="true" />
 

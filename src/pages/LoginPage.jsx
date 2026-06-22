@@ -55,7 +55,7 @@ function useVerticalCarousel(count) {
   const containerRef  = useRef(null)
   const stageRef      = useRef(null)
   const progressRef   = useRef(0)
-  const velRef        = useRef(0.012)
+  const velRef        = useRef(0.00972) // additional 10% slower on top of previous 0.0108 (20% total off original 0.012)
   const panelMouseRef = useRef({ x: 0.5, y: 0.5 })
   const panelTiltYRef = useRef(0)
   const hoveredIdxRef = useRef(-1)
@@ -307,7 +307,15 @@ function TabMobileOTP({ onSuccess }) {
   const [timer,   setTimer]   = useState(30)
   const [loading, setLoading] = useState(false)
   const [agreed,  setAgreed]  = useState(false)
+  const [mobileError, setMobileError] = useState('')
   const otpRefs = useRef([])
+  const mobileInputRef = useRef(null)
+
+  // Autofocus mobile number field on mount (tab becomes active)
+  useEffect(() => {
+    const t = setTimeout(() => mobileInputRef.current?.focus(), 350)
+    return () => clearTimeout(t)
+  }, [])
 
   useEffect(() => {
     if (!otpSent) return
@@ -315,9 +323,20 @@ function TabMobileOTP({ onSuccess }) {
     return () => clearInterval(id)
   }, [otpSent])
 
+  const handleMobileBlur = () => {
+    if (mobile.length > 0 && mobile.length < 10) {
+      setMobileError('Enter a valid 10-digit mobile number.')
+    }
+  }
+
   const handleSend = async (e) => {
     e.preventDefault()
-    if (mobile.length < 10) return
+    if (mobile.length < 10) {
+      setMobileError('Enter a valid 10-digit mobile number.')
+      mobileInputRef.current?.focus()
+      return
+    }
+    setMobileError('')
     setLoading(true)
     await new Promise(r => setTimeout(r, 900))
     setLoading(false); setOtpSent(true); setTimer(30)
@@ -347,10 +366,13 @@ function TabMobileOTP({ onSuccess }) {
       <div className="lgn__field">
         <label className="lgn__field-label">Mobile Number</label>
         <div className="lgn__field-wrapper">
-          <input className="lgn__input" type="tel" placeholder="+91 98765 43210"
-            value={mobile} onChange={e => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))} autoComplete="tel" />
+          <input className={`lgn__input${mobileError ? ' lgn__input--error' : ''}`} type="tel" placeholder="+91 98765 43210"
+            ref={mobileInputRef}
+            value={mobile} onChange={e => { setMobile(e.target.value.replace(/\D/g, '').slice(0, 10)); setMobileError('') }}
+            onBlur={handleMobileBlur} autoComplete="tel" />
           <div className="lgn__field-underline" aria-hidden="true" />
         </div>
+        {mobileError && <span className="lgn__field-error">{mobileError}</span>}
       </div>
       <label className="lgn__agree">
         <input type="checkbox" className="lgn__agree-checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} />
@@ -397,9 +419,6 @@ function TabMobileOTP({ onSuccess }) {
               onClick={() => { setOtpSent(false); setOtp(['','','','','','']); setTimer(30) }}>Resend OTP</button>}
       </div>
       <AuraPlatinumButton type="submit" size="md" loading={loading} showArrow={!loading}>Verify &amp; Continue</AuraPlatinumButton>
-      <button type="button" className="lgn__cta--secondary" onClick={() => { setOtpSent(false); setOtp(['','','','','','']) }}>
-        Change Number
-      </button>
     </form>
   )
 }
@@ -413,6 +432,13 @@ function TabCustomerID({ onSuccess, onSwitchToOTP }) {
   const [error,    setError]    = useState('')
   const [agreed,   setAgreed]   = useState(false)
   const { loginUser } = useUser()
+  const idInputRef = useRef(null)
+
+  // Autofocus Customer ID field on mount (tab becomes active)
+  useEffect(() => {
+    const t = setTimeout(() => idInputRef.current?.focus(), 350)
+    return () => clearTimeout(t)
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -434,6 +460,7 @@ function TabCustomerID({ onSuccess, onSwitchToOTP }) {
         <label className="lgn__field-label">Customer ID</label>
         <div className="lgn__field-wrapper">
           <input className={`lgn__input${error ? ' lgn__input--error' : ''}`} type="text" placeholder="e.g. AURA2841064"
+            ref={idInputRef}
             value={id} onChange={e => { setId(e.target.value); setError('') }} autoComplete="username" />
           <div className="lgn__field-underline" aria-hidden="true" />
         </div>
@@ -568,7 +595,6 @@ export default function LoginPage() {
                 <span className="lgn__brand-wordmark-name">AURA</span>
               </div>
             </div>
-            <p className="lgn__brand-tagline">Explore. Navigate. Prosper.</p>
           </div>
 
           <div className="lgn__heading-block">

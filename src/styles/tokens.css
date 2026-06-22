@@ -229,6 +229,9 @@
   --tracking-wider:    0.1em;
   --tracking-widest:   0.14em;
 
+  /* Fixed px tracking — used where letter-spacing should not scale with font-size */
+  --tracking-1px: 1px;
+
   /* ─── Motion ─────────────────────────────────────────────── */
   --duration-fast:   150ms;
   --duration-base:   250ms;

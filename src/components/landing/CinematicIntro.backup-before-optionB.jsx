@@ -12,19 +12,12 @@
 //   ~3600    — CTA fades in
 //   ~3650    — onComplete() fires
 //
-// Key design decision:
-//   The Y descent and burst are decoupled from the scale overshoot.
-//   We fire impact at descent-duration ms, not when the full
-//   wordmarkCtrl.start() promise resolves.
-//   This makes burst and landing feel physically simultaneous.
-//
 // Styles: src/styles/landing.css (.lp-intro__)
 // ═══════════════════════════════════════════════════════════════
 import { motion, AnimatePresence, useAnimation } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import AuraPlatinumButton from '../ui/AuraPlatinumButton'
 
-// ── Particle system ───────────────────────────────────────────
 const GLYPHS = [
   '₹','$','€','¥','£','₹','$','€','¥','£',
   '12,543','4,382','9,120','2,185','87,340',
@@ -38,8 +31,7 @@ function buildParticles() {
   return GLYPHS.map((glyph, i) => {
     const angle = (i / GLYPHS.length) * 360 + (i % 7) * 8.5
     const rad   = (angle * Math.PI) / 180
-    // Larger distance range — more explosive spread
-    const dist  = 136 + (i % 6) * 50
+    const dist  = 110 + (i % 6) * 40
     const layer = i % 3
     return {
       id:          i,
@@ -49,14 +41,13 @@ function buildParticles() {
       dx:          Math.cos(rad + 0.3) * (dist * 1.8),
       dy:          Math.sin(rad + 0.3) * (dist * 1.5),
       rotation:    angle * 0.25 - 15,
-      // Tighter stagger — front-loaded so burst feels instant
-      delay:       (i % 8) * 0.004,
+      delay:       (i % 8) * 0.012,
       fontSize:    layer === 0 ? 14 + (i % 4) * 3
                  : layer === 1 ? 10 + (i % 3) * 3
                  :               8  + (i % 2) * 2,
-      peakOpacity: layer === 0 ? 0.70
-                 : layer === 1 ? 0.48
-                 :               0.30,
+      peakOpacity: layer === 0 ? 0.60
+                 : layer === 1 ? 0.38
+                 :               0.20,
       isSurvivor:  i % 5 === 0,
     }
   })
@@ -64,21 +55,17 @@ function buildParticles() {
 
 const PARTICLES = buildParticles()
 
-// ── Easing curves ─────────────────────────────────────────────
-// Hard deceleration — fast in, decisive stop
 const EASE_IMPACT  = [0.08, 0, 0.04, 1]
-// Slight overshoot on settle — physical weight without bounce
 const EASE_SETTLE  = [0.34, 1.08, 0.64, 1]
 const EASE_OUT     = [0.16, 1,    0.3,  1]
 
-// ── Timing constants (ms) ─────────────────────────────────────
-const PRE_ROLL       = 300   // wait before descent starts
-const DESCENT_MS     = 540   // wordmark Y travel — faster, sharper arrival
-const SETTLE_MS      = 320   // scale settle after impact
-const DRIFT_WAIT     = 580   // how long burst holds before drift
-const ASSEMBLE_WAIT  = 536   // gap before tagline assembles
-const SUB_WAIT       = 182   // gap before sub-tagline
-const CTA_WAIT       = 479   // gap before CTA
+const PRE_ROLL       = 300
+const DESCENT_MS     = 720
+const SETTLE_MS      = 320
+const DRIFT_WAIT     = 580
+const ASSEMBLE_WAIT  = 650
+const SUB_WAIT       = 220
+const CTA_WAIT       = 580
 
 export default function CinematicIntro({ onComplete, onBegin }) {
   const [phase, setPhase]     = useState('wait')
@@ -88,7 +75,6 @@ export default function CinematicIntro({ onComplete, onBegin }) {
   const taglineCtrl  = useAnimation()
   const subCtrl      = useAnimation()
   const ctaCtrl      = useAnimation()
-  const flashCtrl    = useAnimation()
 
   useEffect(() => {
     let cancelled  = false
@@ -96,11 +82,9 @@ export default function CinematicIntro({ onComplete, onBegin }) {
     const t = (ms, fn) => { const id = setTimeout(fn, ms); timers.push(id) }
 
     const run = async () => {
-      // ── Pre-roll pause ──────────────────────────────────
       await delay(PRE_ROLL)
       if (cancelled) return
 
-      // ── Descent: Y travel only — fast, decisive ─────────
       setPhase('descend')
       wordmarkCtrl.start({
         y:       0,
@@ -113,47 +97,31 @@ export default function CinematicIntro({ onComplete, onBegin }) {
         },
       })
 
-      // ── IMPACT fires at exact Y arrival — no await ──────
-      // We use a raw setTimeout keyed to DESCENT_MS, not
-      // the animation promise, so burst is frame-synchronous
-      // with the wordmark stopping.
       t(DESCENT_MS, () => {
         if (cancelled) return
-
-        // 1. Phase → burst renders particles
         setPhase('impact')
-
-        // 2. Sharper scale-punch — dip, overshoot, settle
         wordmarkCtrl.start({
-          scale: [1.0, 0.90, 1.06, 1.0],
+          scale: [1.0, 0.96, 1.0],
           transition: {
             duration: SETTLE_MS / 1000,
             ease: EASE_SETTLE,
-            times: [0, 0.30, 0.65, 1],
+            times: [0, 0.45, 1],
           },
-        })
-
-        // 3. Single-frame white flash across the whole stage
-        flashCtrl.start({
-          opacity: [0, 0.38, 0],
-          transition: { duration: 0.22, times: [0, 0.25, 1], ease: 'easeOut' },
         })
       })
 
-      // ── Drift ────────────────────────────────────────────
       t(DESCENT_MS + DRIFT_WAIT, () => {
         if (cancelled) return
         setPhase('drift')
       })
 
-      // ── Tagline assembles ─────────────────────────────────
       t(DESCENT_MS + DRIFT_WAIT + ASSEMBLE_WAIT, async () => {
         if (cancelled) return
         setPhase('assemble')
 
         await taglineCtrl.start({
           opacity: 1, y: 0, filter: 'blur(0px)',
-          transition: { duration: 0.58, ease: EASE_OUT },
+          transition: { duration: 0.70, ease: EASE_OUT },
         })
         if (cancelled) return
 
@@ -162,7 +130,7 @@ export default function CinematicIntro({ onComplete, onBegin }) {
 
         await subCtrl.start({
           opacity: 1, y: 0,
-          transition: { duration: 0.50, ease: EASE_OUT },
+          transition: { duration: 0.60, ease: EASE_OUT },
         })
         if (cancelled) return
 
@@ -171,7 +139,7 @@ export default function CinematicIntro({ onComplete, onBegin }) {
 
         await ctaCtrl.start({
           opacity: 1, y: 0,
-          transition: { duration: 0.54, ease: EASE_OUT },
+          transition: { duration: 0.65, ease: EASE_OUT },
         })
         if (cancelled) return
 
@@ -193,14 +161,6 @@ export default function CinematicIntro({ onComplete, onBegin }) {
     <div className="lp-intro">
       <div className="lp-intro__stage">
 
-        {/* Impact flash — single white pulse, fires with the burst */}
-        <motion.div
-          className="lp-intro__flash"
-          initial={{ opacity: 0 }}
-          animate={flashCtrl}
-        />
-
-        {/* ── Particles ────────────────────────────────── */}
         <AnimatePresence>
           {showParticles && PARTICLES.map((p) => {
             const isDrift = phase === 'drift' || phase === 'assemble'
@@ -215,7 +175,6 @@ export default function CinematicIntro({ onComplete, onBegin }) {
                   scale:  p.isSurvivor ? 0.55 : 0.2,
                   filter: 'blur(3px)',
                 } : {
-                  // Burst: sharp expansion, strong peak, fast fade
                   opacity: [0, p.peakOpacity, p.peakOpacity * 0.55],
                   x: p.bx, y: p.by,
                   scale:  [0.2, 1.2, 0.9],
@@ -235,7 +194,6 @@ export default function CinematicIntro({ onComplete, onBegin }) {
           })}
         </AnimatePresence>
 
-        {/* ── Wordmark ─────────────────────────────────── */}
         <motion.div
           className="lp-intro__wordmark"
           initial={{ y: '-130vh', opacity: 0, scale: 1, filter: 'blur(10px)' }}
@@ -244,28 +202,25 @@ export default function CinematicIntro({ onComplete, onBegin }) {
           Aura
         </motion.div>
 
-        {/* ── Primary tagline ───────────────────────────── */}
         <motion.div
           className="lp-intro__tagline"
-          initial={{ opacity: 0, y: 200, filter: 'blur(4px)' }}
+          initial={{ opacity: 0, y: 18, filter: 'blur(4px)' }}
           animate={taglineCtrl}
         >
           Explore. Navigate. Prosper.
         </motion.div>
 
-        {/* ── Secondary tagline ─────────────────────────── */}
         <motion.p
           className="lp-intro__sub"
-          initial={{ opacity: 0, y: 200 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={subCtrl}
         >
           Chart your course toward financial freedom.
         </motion.p>
 
-        {/* ── CTA ──────────────────────────────────────── */}
         <motion.div
           className="lp-intro__cta-wrap"
-          initial={{ opacity: 0, y: 200 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={ctaCtrl}
           style={{ pointerEvents: ctaReady ? 'auto' : 'none' }}
         >

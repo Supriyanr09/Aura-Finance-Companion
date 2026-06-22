@@ -440,10 +440,10 @@
 
 .lgn__brand-wordmark-name {
   font-family: var(--font-brand);
-  font-size: var(--text-xl);
+  font-size: var(--text-3xl);
   font-weight: var(--weight-regular);
   color: rgba(255,255,255,0.95);
-  letter-spacing: 0.2em;
+  letter-spacing: 0.05em;
   line-height: 1;
 }
 
@@ -491,7 +491,7 @@
   font-weight: var(--weight-semibold);
   letter-spacing: var(--tracking-wider);
   text-transform: uppercase;
-  color: rgba(255,255,255,0.32);
+  color: rgba(255,255,255,0.5);
   transition: color var(--duration-fast) var(--ease-smooth);
 }
 
@@ -805,7 +805,7 @@
 
 /* Footer */
 .lgn__auth-footer {
-  display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: center; justify-content: flex-start;
   gap: var(--space-3); flex-wrap: wrap;
   padding-top: var(--space-3); border-top: 1px solid rgba(255,255,255,0.05);
 }

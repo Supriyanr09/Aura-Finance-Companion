@@ -10,15 +10,23 @@
 
 // ── Formatters (used everywhere) ──────────────────────────────
 export const FMT = (n) =>
-  '₹' + Math.abs(n).toLocaleString('en-IN')
+  '₹' + Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 export const FMT_COMPACT = (n) => {
   const abs = Math.abs(n)
   if (abs >= 10000000) return '₹' + (abs / 10000000).toFixed(1) + 'Cr'
-  if (abs >= 100000)   return '₹' + (abs / 100000).toFixed(2) + 'L'
+  if (abs >= 100000)   return '₹' + (abs / 100000).toFixed(1) + 'L'
   if (abs >= 1000)     return '₹' + (abs / 1000).toFixed(1) + 'K'
   return '₹' + abs.toLocaleString('en-IN')
 }
+
+// Rough INR -> USD conversion for forex card display only. Not a
+// live rate, not used anywhere else in the app. If this drifts from
+// real market rates, update the constant — don't hardcode USD
+// values directly on any account record.
+export const INR_TO_USD_RATE = 83
+export const FMT_USD = (inrAmount) =>
+  '$' + Math.round(inrAmount / INR_TO_USD_RATE).toLocaleString('en-US')
 
 // ── Derivation helpers ─────────────────────────────────────────
 export function calcMonthlySpend(transactions) {
@@ -48,7 +56,7 @@ export function calcNetWorth(portfolio, accounts) {
 export function calcDisposable(user) {
   const c            = user.commitments
   const totalSpend   = calcMonthlySpend(user.transactions)
-  return user.income - c.sip - c.rd - c.creditCardBills - c.emergencyTopUp - totalSpend
+  return user.income - c.sip - c.rd - c.creditCardBills - c.emergencyTopUp - (c.loanEMI || 0) - totalSpend
 }
 
 export function calcSpendByCategory(transactions) {
@@ -59,6 +67,188 @@ export function calcSpendByCategory(transactions) {
       result[t.category] = (result[t.category] || 0) + Math.abs(t.amount)
     })
   return result
+}
+
+// ── Financial Network (Banking / Credit / Loans / Global) ─────────
+// Per Aura_Financial_Network_Section.md. Replaces the old flat
+// Accounts list with 4 category aggregates, each computed from
+// the real accounts[]/loans[] arrays — never hardcoded. Each
+// returns null when the category has no underlying accounts, so
+// the UI can render an honest empty state instead of a fake zero.
+function nearestDueDate(items, dueKey) {
+  // Picks the earliest-looking due string for the summary line.
+  // Dates are display strings ('Jun 25'), not real Date objects,
+  // so this is a simple "first one found" rather than true sort —
+  // acceptable since each persona has at most 2-3 items per category.
+  const withDue = items.filter(i => i[dueKey])
+  return withDue.length ? withDue[0] : null
+}
+
+export function calcFinancialNetwork(user) {
+  const accounts = user.accounts || []
+  const loans    = user.loans    || []
+
+  // ── Banking ── Savings/Salary/Current accounts only (per doc,
+  // debit cards are not shown as separate entries here — they're
+  // just an access method, not a balance).
+  const bankAccounts = accounts.filter(a => a.type === 'Savings Account')
+  const banking = bankAccounts.length ? {
+    total:    bankAccounts.reduce((s, a) => s + a.balance, 0),
+    count:    bankAccounts.length,
+    primary:  bankAccounts[0].label,
+    accounts: bankAccounts,
+  } : null
+
+  // ── Credit ── all credit cards, outstanding balance + nearest due
+  const creditCards = accounts.filter(a => a.type === 'Credit Card')
+  const credit = creditCards.length ? {
+    total:      creditCards.reduce((s, a) => s + a.balance, 0),
+    count:      creditCards.length,
+    nearestDue: nearestDueDate(creditCards, 'dueDate'),
+    cards:      creditCards,
+  } : null
+
+  // ── Loans ── sum of EMIs, not outstanding principal (per doc's
+  // own worked example, the headline number is "Monthly EMI")
+  const loanSection = loans.length ? {
+    totalEMI: loans.reduce((s, l) => s + l.emi, 0),
+    count:    loans.length,
+    nextDue:  nearestDueDate(loans, 'nextDue'),
+    loans:    loans,
+  } : null
+
+  // ── Global ── forex cards, displayed in USD via FMT_USD.
+  const forexCards = accounts.filter(a => a.type === 'Forex Card')
+  const global = forexCards.length ? {
+    total:    forexCards.reduce((s, a) => s + a.balance, 0),
+    count:    forexCards.length,
+    cards:    forexCards,
+  } : null
+
+  return { banking, credit, loans: loanSection, global }
+}
+
+// ── CreditIQ ─────────────────────────────────────────────────
+// Aura's proprietary credit-health score. NOT the official CIBIL
+// score — see USER.cibilScore for that (refresh-on-request, static
+// between refreshes). CreditIQ is computed fresh from live mock
+// data every render.
+//
+// Weights (per Aura-CreditIQ-KPI-Replacement.md):
+//   Credit Utilisation   30%  — balance/limit across credit cards
+//   Payment Reliability  25%  — no payment-history data exists in
+//                                mock data; reuses Debt Management
+//                                pillar score as the closest real
+//                                proxy. Intentionally overlaps with
+//                                Debt Burden below — flagged, not
+//                                hidden.
+//   Debt Burden          20%  — health.pillars 'debt' score
+//   Financial Stability  15%  — health.pillars 'savings' +
+//                                'investments', averaged
+//   Savings Buffer        10%  — emergencyMonths, scaled to /100
+//                                against a 6-month target
+export function calcCreditUtilisation(accounts) {
+  const cards = accounts.filter(a => a.type === 'Credit Card' && a.limit)
+  if (cards.length === 0) return 100
+  const totalBalance = cards.reduce((s, a) => s + a.balance, 0)
+  const totalLimit   = cards.reduce((s, a) => s + a.limit, 0)
+  const utilPct      = (totalBalance / totalLimit) * 100
+  // Lower utilisation = better. 0% util -> 100 score, 100% util -> 0 score.
+  return Math.max(0, Math.round(100 - utilPct))
+}
+
+export function calcSavingsBufferScore(emergencyMonths) {
+  // 6 months is the standard target used elsewhere in this app
+  // (see goals.emergency-fund). Scaled linearly, capped at 100.
+  return Math.min(100, Math.round((emergencyMonths / 6) * 100))
+}
+
+export function calcCreditIQ(user) {
+  const utilisationScore = calcCreditUtilisation(user.accounts)
+  const debtScore        = user.health.pillars.find(p => p.id === 'debt')?.score ?? 50
+  const reliabilityScore = debtScore // reused per product decision — see comment above
+  const savingsScore     = user.health.pillars.find(p => p.id === 'savings')?.score ?? 50
+  const investScore      = user.health.pillars.find(p => p.id === 'investments')?.score ?? 50
+  const stabilityScore   = Math.round((savingsScore + investScore) / 2)
+  const bufferScore      = calcSavingsBufferScore(user.emergencyMonths)
+
+  const weighted =
+    utilisationScore * 0.30 +
+    reliabilityScore * 0.25 +
+    debtScore        * 0.20 +
+    stabilityScore   * 0.15 +
+    bufferScore       * 0.10
+
+  const score = Math.round(weighted)
+
+  let band, bandLabel
+  if (score >= 80)      { band = 'success'; bandLabel = 'Excellent' }
+  else if (score >= 60)  { band = 'info';    bandLabel = 'Good'      }
+  else if (score >= 40)  { band = 'warning'; bandLabel = 'Fair'      }
+  else                    { band = 'danger';  bandLabel = 'Needs Work' }
+
+  const drivers = {
+    utilisation: utilisationScore,
+    reliability: reliabilityScore,
+    debt:        debtScore,
+    stability:   stabilityScore,
+    buffer:      bufferScore,
+  }
+
+  return {
+    score,
+    band,
+    bandLabel,
+    drivers,
+    insight: calcCreditIQInsight(drivers, band),
+  }
+}
+
+// Rule-based insight line — NOT a real month-over-month diff.
+// There is no stored prior-month CreditIQ/driver data in mockData,
+// so this can't honestly claim a trend. Per product decision, it
+// uses the doc's exact "this month" phrasing anyway for visual
+// consistency with Total Wealth / Savings Rate (which ARE real
+// diffs against May data). Flagged here, not hidden: if real
+// historical CreditIQ tracking is added later, this function is
+// the one that needs to change from "pick worst/best current
+// driver" to "diff against last month's actual values."
+const CREDITIQ_MESSAGES = {
+  improving: {
+    utilisation: '↑ Lower credit utilisation this month',
+    reliability: '↑ Payment reliability improved',
+    debt:        '↑ Debt burden reduced',
+    buffer:      '↑ Emergency buffer strengthened',
+    stability:   '↑ Financial stability improved',
+  },
+  stable: {
+    default: '✓ Credit profile remains healthy',
+  },
+  declining: {
+    utilisation: '↓ Credit utilisation increased',
+    reliability: '↓ Upcoming dues require attention',
+    debt:        '↓ Higher debt obligations detected',
+    buffer:      '↓ Reduced savings buffer',
+    stability:   '↓ Financial stability needs attention',
+  },
+}
+
+export function calcCreditIQInsight(drivers, band) {
+  const entries = Object.entries(drivers)
+  const weakest = entries.reduce((min, e) => e[1] < min[1] ? e : min, entries[0])
+  const strongest = entries.reduce((max, e) => e[1] > max[1] ? e : max, entries[0])
+
+  // Strong overall score -> lead with what's driving it.
+  if (band === 'success' || band === 'info') {
+    // Still flag a weak driver if one is dragging well below the rest.
+    if (weakest[1] < 50) {
+      return { text: CREDITIQ_MESSAGES.declining[weakest[0]] || CREDITIQ_MESSAGES.stable.default, direction: 'declining' }
+    }
+    return { text: CREDITIQ_MESSAGES.improving[strongest[0]] || CREDITIQ_MESSAGES.stable.default, direction: 'improving' }
+  }
+
+  // Weak overall score -> always lead with the worst driver.
+  return { text: CREDITIQ_MESSAGES.declining[weakest[0]] || CREDITIQ_MESSAGES.stable.default, direction: 'declining' }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -89,7 +279,18 @@ export const USER_YATHIKA = {
     rd:               7000,  // Post Office RD — auto-debit 7th
     creditCardBills: 28400,  // HDFC Regalia outstanding due Jun 25
     emergencyTopUp:  20000,  // Recommended: build emergency cover to 3 months
+    loanEMI:         42500,  // Home loan 31,000 + Car loan 11,500 — see loans[]
   },
+
+  // ── Active loans ────────────────────────────────────────────
+  // Per Aura_Financial_Network_Section.md — fabricated for the
+  // Financial Network rebuild since neither persona had loan data
+  // previously. Sized against Yathika's ₹3L income; loanEMI above
+  // is the sum of these and is included in calcDisposable().
+  loans: [
+    { id: 'home-loan', type: 'Home Loan', label: 'HDFC Home Loan', emi: 31000, outstanding: 4200000, nextDue: 'Jul 10', rate: 8.5, tenureLeft: '14 years' },
+    { id: 'car-loan',  type: 'Car Loan',  label: 'Axis Car Loan',  emi: 11500, outstanding: 380000,  nextDue: 'Jul 10', rate: 9.2, tenureLeft: '2 years'  },
+  ],
 
   // ── Full transaction history ───────────────────────────────
   // month field: 'Jun' | 'May' | 'Apr' — for monthly aggregations
@@ -115,14 +316,11 @@ export const USER_YATHIKA = {
     { id: 'j13', merchant: 'Chai Point',          category: 'Food',          date: '3 Jun 9:00 AM',   month: 'Jun', amount:    200, dir: 'out', icon: 'Coffee'        },
     { id: 'j14', merchant: 'Zomato',              category: 'Food',          date: '2 Jun 7:45 PM',   month: 'Jun', amount:   1460, dir: 'out', icon: 'ForkKnife'     },
     { id: 'j15', merchant: 'Swiggy',              category: 'Food',          date: '1 Jun 12:00 PM',  month: 'Jun', amount:    540, dir: 'out', icon: 'ForkKnife'     },
-    // Food subtotal: 820+1240+640+560+1800+980+560+740+2200+660+200+1460+540 = 12,400
-    // Remaining food to reach 28,400: 16,000 — split across dining out below
     { id: 'j16', merchant: 'The Fatty Bao',       category: 'Food',          date: '8 Jun 8:30 PM',   month: 'Jun', amount:   3800, dir: 'out', icon: 'ForkKnife'     },
     { id: 'j17', merchant: 'Windmills Craftworks', category: 'Food',         date: '5 Jun 8:00 PM',   month: 'Jun', amount:   4200, dir: 'out', icon: 'ForkKnife'     },
     { id: 'j18', merchant: 'Indian Accent Pop-up', category: 'Food',         date: '3 Jun 8:00 PM',   month: 'Jun', amount:   5200, dir: 'out', icon: 'ForkKnife'     },
     { id: 'j19', merchant: 'Café Coffee Day',      category: 'Food',         date: '2 Jun 4:00 PM',   month: 'Jun', amount:    800, dir: 'out', icon: 'Coffee'        },
     { id: 'j20', merchant: 'Swiggy Instamart',     category: 'Food',         date: '10 Jun 6:00 PM',  month: 'Jun', amount:   2000, dir: 'out', icon: 'ForkKnife'     },
-    // Food total: 12,400 + 3,800 + 4,200 + 5,200 + 800 + 2,000 = 28,400 ✓
 
     // ── JUNE NIGHTLIFE (sum: ₹14,600) ──
     { id: 'j21', merchant: 'Toit Brewpub',        category: 'Nightlife',     date: '13 Jun 10:45 PM', month: 'Jun', amount:   3200, dir: 'out', icon: 'MartiniGlass'  },
@@ -130,7 +328,6 @@ export const USER_YATHIKA = {
     { id: 'j23', merchant: 'Social — Koramangala',category: 'Nightlife',     date: '7 Jun 10:00 PM',  month: 'Jun', amount:   2800, dir: 'out', icon: 'MartiniGlass'  },
     { id: 'j24', merchant: 'Arbor Brewing Co.',   category: 'Nightlife',     date: '7 Jun 11:00 PM',  month: 'Jun', amount:   1900, dir: 'out', icon: 'MartiniGlass'  },
     { id: 'j25', merchant: 'Skyye Bar',           category: 'Nightlife',     date: '1 Jun 9:30 PM',   month: 'Jun', amount:   4600, dir: 'out', icon: 'MartiniGlass'  },
-    // Nightlife total: 3200+2100+2800+1900+4600 = 14,600 ✓
 
     // ── JUNE TRAVEL (sum: ₹18,400) ──
     { id: 'j26', merchant: 'IndiGo — BLR→GOA',   category: 'Travel',        date: '1 Jun 6:00 AM',   month: 'Jun', amount:   8400, dir: 'out', icon: 'Airplane'      },
@@ -141,13 +338,11 @@ export const USER_YATHIKA = {
     { id: 'j31', merchant: 'Rapido',              category: 'Travel',        date: '8 Jun 8:30 AM',   month: 'Jun', amount:    160, dir: 'out', icon: 'Car'           },
     { id: 'j32', merchant: 'Uber',                category: 'Travel',        date: '6 Jun 10:00 PM',  month: 'Jun', amount:    620, dir: 'out', icon: 'Car'           },
     { id: 'j33', merchant: 'MakeMyTrip — Hotel',  category: 'Travel',        date: '2 Jun 11:00 AM',  month: 'Jun', amount:   7800, dir: 'out', icon: 'Airplane'      },
-    // Travel total: 8400+380+180+520+340+160+620+7800 = 18,400 ✓
 
     // ── JUNE SHOPPING (sum: ₹9,200) ──
     { id: 'j34', merchant: 'Amazon',              category: 'Shopping',      date: '10 Jun 3:00 PM',  month: 'Jun', amount:   3200, dir: 'out', icon: 'ShoppingBag'   },
     { id: 'j35', merchant: 'Nykaa',               category: 'Shopping',      date: '8 Jun 12:00 PM',  month: 'Jun', amount:   2800, dir: 'out', icon: 'ShoppingBag'   },
     { id: 'j36', merchant: 'Myntra',              category: 'Shopping',      date: '4 Jun 6:00 PM',   month: 'Jun', amount:   3200, dir: 'out', icon: 'ShoppingBag'   },
-    // Shopping total: 3200+2800+3200 = 9,200 ✓
 
     // ── JUNE SUBSCRIPTIONS (sum: ₹3,800) ──
     { id: 'j37', merchant: 'Netflix',             category: 'Subscriptions', date: '5 Jun 12:00 AM',  month: 'Jun', amount:    649, dir: 'out', icon: 'Television'    },
@@ -160,21 +355,16 @@ export const USER_YATHIKA = {
     { id: 'j44', merchant: 'YouTube Premium',     category: 'Subscriptions', date: '5 Jun 12:00 AM',  month: 'Jun', amount:    189, dir: 'out', icon: 'YoutubeLogo'   },
     { id: 'j45', merchant: 'Notion',              category: 'Subscriptions', date: '5 Jun 12:00 AM',  month: 'Jun', amount:    329, dir: 'out', icon: 'Note'          },
     { id: 'j46', merchant: 'LinkedIn Premium',    category: 'Subscriptions', date: '5 Jun 12:00 AM',  month: 'Jun', amount:   1000, dir: 'out', icon: 'LinkedinLogo'  },
-    // Subscriptions total: 649+119+349+299+219+149+499+189+329+1000 = 3,801 ≈ 3,800 ✓
 
     // ── JUNE UTILITIES (sum: ₹5,000) ──
     { id: 'j47', merchant: 'BESCOM',              category: 'Utilities',     date: '3 Jun 10:00 AM',  month: 'Jun', amount:   2200, dir: 'out', icon: 'Lightning'     },
     { id: 'j48', merchant: 'Airtel Postpaid',     category: 'Utilities',     date: '3 Jun 10:00 AM',  month: 'Jun', amount:   1299, dir: 'out', icon: 'Phone'         },
     { id: 'j49', merchant: 'ACT Fibernet',        category: 'Utilities',     date: '3 Jun 10:00 AM',  month: 'Jun', amount:   1499, dir: 'out', icon: 'WifiHigh'      },
-    // Utilities total: 2200+1299+1499 = 4,998 ≈ 5,000 ✓
 
     // ── JUNE MISCELLANEOUS (sum: ₹4,000) ──
     { id: 'j50', merchant: 'PharmEasy',           category: 'Health',        date: '11 Jun 3:00 PM',  month: 'Jun', amount:    840, dir: 'out', icon: 'FirstAid'      },
     { id: 'j51', merchant: 'Cult.fit',            category: 'Health',        date: '1 Jun 12:00 AM',  month: 'Jun', amount:   2499, dir: 'out', icon: 'Barbell'       },
     { id: 'j52', merchant: 'Big Bazaar',          category: 'Groceries',     date: '9 Jun 5:00 PM',   month: 'Jun', amount:    661, dir: 'out', icon: 'ShoppingCart'  },
-    // Misc total: 840+2499+661 = 4,000 ✓
-
-    // ── TOTAL JUNE SPEND: 35000+28400+14600+18400+9200+3800+5000+4000 = 1,18,400 ✓
 
     // ── MAY TRANSACTIONS (for trend comparison) ──
     { id: 'm01', merchant: 'Salary — Zepto',      category: 'Income',        date: '1 May 10:02 AM',  month: 'May', amount: 300000, dir: 'in',  icon: 'Briefcase'     },
@@ -190,8 +380,6 @@ export const USER_YATHIKA = {
     { id: 'm11', merchant: 'Swiggy',              category: 'Food',          date: '15 May 1:00 PM',  month: 'May', amount:    620, dir: 'out', icon: 'ForkKnife'     },
     { id: 'm12', merchant: 'Uber',                category: 'Travel',        date: '18 May 9:00 AM',  month: 'May', amount:    420, dir: 'out', icon: 'Car'           },
     { id: 'm13', merchant: 'Cult.fit',            category: 'Health',        date: '1 May 12:00 AM',  month: 'May', amount:   2499, dir: 'out', icon: 'Barbell'       },
-    // May total spend ≈ ₹52,406 — but May had less eating out and no travel
-    // Adding more May to reach ₹1,08,000 (the prevMonth value)
     { id: 'm14', merchant: 'Zomato',              category: 'Food',          date: '10 May 7:00 PM',  month: 'May', amount:  22000, dir: 'out', icon: 'ForkKnife'     },
     { id: 'm15', merchant: 'Social',              category: 'Nightlife',     date: '17 May 9:00 PM',  month: 'May', amount:   8000, dir: 'out', icon: 'MartiniGlass'  },
     { id: 'm16', merchant: 'Myntra',              category: 'Shopping',      date: '12 May 3:00 PM',  month: 'May', amount:   4000, dir: 'out', icon: 'ShoppingBag'   },
@@ -206,14 +394,11 @@ export const USER_YATHIKA = {
     { id: 'm25', merchant: 'Hotstar',             category: 'Subscriptions', date: '5 May 12:00 AM',  month: 'May', amount:    499, dir: 'out', icon: 'Television'    },
     { id: 'm26', merchant: 'YouTube Premium',     category: 'Subscriptions', date: '5 May 12:00 AM',  month: 'May', amount:    189, dir: 'out', icon: 'YoutubeLogo'   },
     { id: 'm27', merchant: 'Notion',              category: 'Subscriptions', date: '5 May 12:00 AM',  month: 'May', amount:    329, dir: 'out', icon: 'Note'          },
-    // May total: 35000+1100+1800+2800+4200+649+119+1900+1299+620+420+2499+22000+8000+4000+1499+299+1000+300+1200+349+219+149+499+189+329 = ₹91,439
-    // Need ₹16,561 more to hit ₹1,08,000
     { id: 'm28', merchant: 'Rapido',              category: 'Travel',        date: '20 May 8:00 AM',  month: 'May', amount:   2000, dir: 'out', icon: 'Car'           },
     { id: 'm29', merchant: 'Nykaa',               category: 'Shopping',      date: '14 May 1:00 PM',  month: 'May', amount:   3200, dir: 'out', icon: 'ShoppingBag'   },
     { id: 'm30', merchant: 'Starbucks',           category: 'Food',          date: '7 May 9:00 AM',   month: 'May', amount:   5400, dir: 'out', icon: 'Coffee'        },
     { id: 'm31', merchant: 'Third Wave Coffee',   category: 'Food',          date: '21 May 9:00 AM',  month: 'May', amount:   2400, dir: 'out', icon: 'Coffee'        },
     { id: 'm32', merchant: 'Zepto',               category: 'Groceries',     date: '16 May 7:00 PM',  month: 'May', amount:   3561, dir: 'out', icon: 'ShoppingCart'  },
-    // May total: ₹91,439 + 2000 + 3200 + 5400 + 2400 + 3561 = ₹1,08,000 ✓
 
     // ── APRIL TRANSACTIONS (abbreviated for sparklines) ──
     { id: 'a01', merchant: 'Salary — Zepto',      category: 'Income',        date: '14 Apr 10:02 AM', month: 'Apr', amount: 300000, dir: 'in',  icon: 'Briefcase'     },
@@ -225,15 +410,22 @@ export const USER_YATHIKA = {
     { id: 'a07', merchant: 'Various',             category: 'Utilities',     date: '3 Apr',           month: 'Apr', amount:   5000, dir: 'out', icon: 'Lightning'     },
     { id: 'a08', merchant: 'Various',             category: 'Travel',        date: '30 Apr',          month: 'Apr', amount:   4000, dir: 'out', icon: 'Airplane'      },
     { id: 'a09', merchant: 'Various',             category: 'Health',        date: '30 Apr',          month: 'Apr', amount:   3500, dir: 'out', icon: 'FirstAid'      },
-    // April total spend: 35000+24000+9000+12000+3801+5000+4000+3500 = 96,301
   ],
 
   // ── Bank accounts ──────────────────────────────────────────
+  // Per Aura_Financial_Network_Section.md — expanded with a 2nd
+  // bank account and 2 more credit cards so the Financial Network
+  // section has real multi-account content to aggregate. New cards
+  // sized to be healthy/low-utilisation (she's "Watchful," not in
+  // credit crisis) per explicit product decision.
   accounts: [
-    { id: 'hdfc-savings', type: 'Savings Account', label: 'HDFC Bank',     number: '••4821', balance: 240000, variant: 'info',    icon: 'Bank',          interestRate: 3.0  },
-    { id: 'hdfc-credit',  type: 'Credit Card',     label: 'HDFC Regalia',  number: '••7741', balance: 28400,  variant: 'danger',  icon: 'CreditCard',    dueDate: 'Jun 25', outstanding: true, limit: 500000, minDue: 2840  },
-    { id: 'niyo-forex',   type: 'Forex Card',      label: 'Niyo Global',   number: '••9214', balance: 18500,  variant: 'warning', icon: 'CurrencyDollar' },
-    { id: 'hdfc-debit',   type: 'Debit Card',      label: 'HDFC Platinum', number: '••6032', balance: 240000, variant: 'brand',   icon: 'CreditCard'     },
+    { id: 'hdfc-savings', type: 'Savings Account', label: 'HDFC Bank',       number: '••4821', balance: 240000, variant: 'info',    icon: 'Bank',          interestRate: 3.0  },
+    { id: 'axis-savings', type: 'Savings Account', label: 'Axis Bank',       number: '••1187', balance: 45000,  variant: 'info',    icon: 'Bank',          interestRate: 3.5  },
+    { id: 'hdfc-credit',  type: 'Credit Card',     label: 'HDFC Regalia',    number: '••7741', balance: 28400,  variant: 'danger',  icon: 'CreditCard',    dueDate: 'Jun 25', outstanding: true, limit: 500000, minDue: 2840 },
+    { id: 'icici-credit', type: 'Credit Card',     label: 'ICICI Amazon Pay',number: '••3352', balance: 4200,   variant: 'info',    icon: 'CreditCard',    dueDate: 'Jul 2',  outstanding: true, limit: 80000,  minDue: 420  },
+    { id: 'axis-atlas',   type: 'Credit Card',     label: 'Axis Atlas',      number: '••5590', balance: 12000,  variant: 'info',    icon: 'CreditCard',    dueDate: 'Jul 8',  outstanding: true, limit: 300000, minDue: 1200 },
+    { id: 'niyo-forex',   type: 'Forex Card',      label: 'Niyo Global',     number: '••9214', balance: 18500,  variant: 'warning', icon: 'CurrencyDollar' },
+    { id: 'hdfc-debit',   type: 'Debit Card',      label: 'HDFC Platinum',   number: '••6032', balance: 240000, variant: 'brand',   icon: 'CreditCard'     },
   ],
 
   // ── Investment portfolio ───────────────────────────────────
@@ -329,8 +521,8 @@ export const USER_YATHIKA = {
       id: 'emergency-fund',
       label:    'Emergency Fund',
       icon:     'ShieldCheck',
-      target:   1800000,  // 6 months × ₹3,00,000 income
-      saved:    240000,   // Current savings account
+      target:   1800000,
+      saved:    240000,
       deadline: 'Dec 2026',
       monthlyRequired: 20000,
       variant:  'danger',
@@ -379,23 +571,48 @@ export const USER_YATHIKA = {
   },
 
   // ── Aura would do ─────────────────────────────────────────
+  // amount added per step — the rupee figure each step actually
+  // allocates, pulled from the existing body copy (₹20,000 /
+  // ₹10,000 / ₹20,000) rather than invented. Used to render a
+  // running-balance trail across the undeployed ₹50,000 in the
+  // alternate UI layouts — never re-derive this from parsing body
+  // text, it's the source of truth for the math now.
+  // NOTE: undeployed corrected 40000→50000 to match the sum of
+  // step amounts (20k+10k+20k); the original 40000 didn't
+  // reconcile with either the step amounts or step 2's own body
+  // text ("~₹11,600 remains"). Step 2's body text still has that
+  // unreconciled math — left as-is per explicit product decision,
+  // not fixed silently.
   auraWouldDo: {
-    undeployed: 40000,
+    undeployed: 50000,
+    // jargonTerm/jargonDef power the info-icon tooltip on each step
+    // card — explains the one financial term in that step's body
+    // most likely to need defining. Plain-language only, no jargon
+    // inside the definition itself.
     steps: [
-      { step: 1, of: 3, icon: 'ShieldCheck', title: 'Patch your emergency gap first',  body: 'You have 1.2 months of cover. You need 6. Park ₹20,000 into a liquid fund — it earns ~6.5% and you can pull it in 24 hours. Non-negotiable.', variant: 'danger'  },
-      { step: 2, of: 3, icon: 'TrendUp',     title: 'Step up your SIP by ₹10K',        body: 'After the liquid fund, ~₹11,600 remains. Add ₹10,000/month to Nifty 50. Compounded over 10 years at 12% CAGR adds ₹20.6L.',                  variant: 'info'    },
-      { step: 3, of: 3, icon: 'Bank',        title: 'Lock ₹20K in a short FD',         body: 'SBI is offering 7.4% on 1-year FDs right now. ₹20K locked earns ₹1,480 risk-free. Do this after the SIP step.',                              variant: 'warning' },
+      { step: 1, of: 3, icon: 'ShieldCheck', title: 'Patch your emergency gap first',  body: 'You have 1.2 months of cover. You need 6. Park ₹20,000 into a liquid fund — it earns ~6.5% and you can pull it in 24 hours. Non-negotiable.', variant: 'danger',  amount: 20000, jargonTerm: 'Liquid fund', jargonDef: 'A type of mutual fund that invests in very short-term, low-risk instruments. You can withdraw your money within 24 hours, making it a safer parking spot than a savings account but still earning a bit more interest.' },
+      { step: 2, of: 3, icon: 'TrendUp',     title: 'Step up your SIP by ₹10K',        body: 'After the liquid fund, ~₹11,600 remains. Add ₹10,000/month to Nifty 50. Compounded over 10 years at 12% CAGR adds ₹20.6L.',                  variant: 'info',    amount: 10000, jargonTerm: 'CAGR', jargonDef: 'Compound Annual Growth Rate — the average yearly return an investment would need to grow from its starting value to its ending value, assuming profits are reinvested each year rather than withdrawn.' },
+      { step: 3, of: 3, icon: 'Bank',        title: 'Lock ₹20K in a short FD',         body: 'SBI is offering 7.4% on 1-year FDs right now. ₹20K locked earns ₹1,480 risk-free. Do this after the SIP step.',                              variant: 'warning', amount: 20000, jargonTerm: 'FD', jargonDef: 'Fixed Deposit — you lock a sum of money with a bank for a set period at a fixed interest rate. You earn more than a regular savings account, but can\'t access the money early without a penalty.' },
     ],
   },
 
   // ── Markets (same for both users) ─────────────────────────
+  // base = the live numeric price/index value the ticker math
+  // runs against. value/change/dir below are just the INITIAL
+  // render before the ticker hook (useMarketTicker) takes over and
+  // starts nudging base on an interval — see that hook for the
+  // actual fluctuation logic. prefix/decimals control display
+  // formatting per instrument type (indices: no ₹, whole numbers;
+  // stocks: ₹-prefixed, often whole rupees but Zomato-style small-
+  // cap prices could go to paise — kept at 0 decimals here since
+  // none of the seed prices need finer precision to look real).
   markets: [
-    { id: 'nifty',    label: 'Nifty 50', value: '24,531', change: '+0.82%', dir: 'up'   },
-    { id: 'sensex',   label: 'Sensex',   value: '80,822', change: '+0.64%', dir: 'up'   },
-    { id: 'zomato',   label: 'Zomato',   value: '₹228',   change: '+2.1%',  dir: 'up'   },
-    { id: 'infy',     label: 'INFY',     value: '₹1,641', change: '-0.5%',  dir: 'down' },
-    { id: 'reliance', label: 'Reliance', value: '₹2,941', change: '+1.2%',  dir: 'up'   },
-    { id: 'hdfc',     label: 'HDFC',     value: '₹1,724', change: '+1.1%',  dir: 'up'   },
+    { id: 'nifty',    label: 'Nifty 50', base: 24531, prefix: '',  decimals: 0, value: '24,531', change: '+0.82%', dir: 'up'   },
+    { id: 'sensex',   label: 'Sensex',   base: 80822, prefix: '',  decimals: 0, value: '80,822', change: '+0.64%', dir: 'up'   },
+    { id: 'zomato',   label: 'Zomato',   base: 228,   prefix: '₹', decimals: 0, value: '₹228',   change: '+2.1%',  dir: 'up'   },
+    { id: 'infy',     label: 'INFY',     base: 1641,  prefix: '₹', decimals: 0, value: '₹1,641', change: '-0.5%',  dir: 'down' },
+    { id: 'reliance', label: 'Reliance', base: 2941,  prefix: '₹', decimals: 0, value: '₹2,941', change: '+1.2%',  dir: 'up'   },
+    { id: 'hdfc',     label: 'HDFC',     base: 1724,  prefix: '₹', decimals: 0, value: '₹1,724', change: '+1.1%',  dir: 'up'   },
   ],
 
   // ── FraudShield alerts ────────────────────────────────────
@@ -449,7 +666,17 @@ export const USER_ANAND = {
     rd:              0,
     creditCardBills: 6080,  // Axis min ₹4,370 + HDFC min ₹1,710
     emergencyTopUp:  0,
+    loanEMI:         4200,  // Car loan only — see loans[]. Kept small
+                             // since he's already at 92% spend ratio;
+                             // a home loan would be unrealistic for
+                             // this persona's crisis-level finances.
   },
+
+  // ── Active loans ────────────────────────────────────────────
+  // Single small car loan only — see commitments.loanEMI comment.
+  loans: [
+    { id: 'car-loan', type: 'Car Loan', label: 'HDFC Car Loan', emi: 4200, outstanding: 95000, nextDue: 'Jul 5', rate: 10.5, tenureLeft: '8 months' },
+  ],
 
   transactions: [
     { id: 'aj01', merchant: 'Salary — TCS',       category: 'Income',        date: '30 May 11:45 PM', month: 'Jun', amount: 150000, dir: 'in',  icon: 'Briefcase'   },
@@ -472,7 +699,6 @@ export const USER_ANAND = {
     { id: 'aj18', merchant: 'Bar Stock Exchange',  category: 'Nightlife',     date: '7 Jun 10:00 PM',  month: 'Jun', amount:   2800, dir: 'out', icon: 'MartiniGlass'},
     { id: 'aj19', merchant: 'Spotify',             category: 'Subscriptions', date: '5 Jun 12:00 AM',  month: 'Jun', amount:    119, dir: 'out', icon: 'MusicNote'   },
     { id: 'aj20', merchant: 'Amazon Prime',        category: 'Subscriptions', date: '5 Jun 12:00 AM',  month: 'Jun', amount:    299, dir: 'out', icon: 'Television'  },
-    // Jun total spend: 28000+87400+1240+680+649+4299+380+1800+799+980+2800+540+3200+480+180+940+2800+119+299 = ₹1,38,585 ≈ ₹1,38,000
   ],
 
   accounts: [
@@ -517,7 +743,7 @@ export const USER_ANAND = {
       id: 'emergency-fund',
       label:    'Emergency Fund',
       icon:     'ShieldCheck',
-      target:   450000,  // 3 months × ₹1,50,000
+      target:   450000,
       saved:    12000,
       deadline: 'Dec 2026',
       monthlyRequired: 18000,
@@ -528,7 +754,7 @@ export const USER_ANAND = {
       id: 'cc-payoff',
       label:    'Clear Credit Card Debt',
       icon:     'CreditCard',
-      target:   121600,  // Total CC outstanding
+      target:   121600,
       saved:    0,
       deadline: 'Dec 2025',
       monthlyRequired: 20267,
@@ -553,21 +779,27 @@ export const USER_ANAND = {
     nudgeVariant:'danger',
   },
 
+  // amount only set where the step genuinely allocates a slice of
+  // the undeployed total. Step 1 pays the Axis minimum from the
+  // ₹12K — a real allocation. Steps 2 and 3 (freeze spend, start a
+  // future SIP) aren't deployments of THIS month's ₹12K, so they
+  // intentionally have no amount — the running-balance UI must
+  // handle that (stop the trail, don't show a fake ₹0).
   auraWouldDo: {
     undeployed: 12000,
     steps: [
-      { step: 1, of: 3, icon: 'CreditCard', title: 'Clear the Axis minimum today',   body: 'Axis Magnus minimum due is ₹4,370 by Jun 18. Missing it adds a 3.5% penalty and hurts your CIBIL score. Pay this first from your ₹12K.',                   variant: 'danger'  },
+      { step: 1, of: 3, icon: 'CreditCard', title: 'Clear the Axis minimum today',   body: 'Axis Magnus minimum due is ₹4,370 by Jun 18. Missing it adds a 3.5% penalty and hurts your CIBIL score. Pay this first from your ₹12K.',                   variant: 'danger',  amount: 4370, jargonTerm: 'CIBIL score', jargonDef: 'A three-digit number (300–900) that represents your creditworthiness in India. Lenders check it before approving loans or cards — missed payments and high credit card balances pull it down.' },
       { step: 2, of: 3, icon: 'Warning',    title: 'Freeze all discretionary spend', body: "No dining out, no subscriptions, no UPI impulse buys until you've saved ₹30,000. Every rupee counts this month.",                                           variant: 'warning' },
-      { step: 3, of: 3, icon: 'TrendUp',    title: 'Start a ₹5,000 SIP next month',  body: 'Once the Axis card is cleared, redirect ₹5,000/month into a Nifty 50 index fund. The lowest-effort way to start building something real.',                  variant: 'info'    },
+      { step: 3, of: 3, icon: 'TrendUp',    title: 'Start a ₹5,000 SIP next month',  body: 'Once the Axis card is cleared, redirect ₹5,000/month into a Nifty 50 index fund. The lowest-effort way to start building something real.',                  variant: 'info',    jargonTerm: 'SIP', jargonDef: 'Systematic Investment Plan — a fixed amount auto-invested into a mutual fund every month, rather than investing one lump sum. Spreads your buying price out over time instead of betting on a single entry point.' },
     ],
   },
 
   markets: [
-    { id: 'nifty',  label: 'Nifty 50',  value: '24,531', change: '+0.82%', dir: 'up'   },
-    { id: 'sensex', label: 'Sensex',    value: '80,822', change: '+0.64%', dir: 'up'   },
-    { id: 'paytm',  label: 'Paytm',     value: '₹412',   change: '-1.8%',  dir: 'down' },
-    { id: 'adani',  label: 'Adani Ent', value: '₹2,841', change: '-2.3%',  dir: 'down' },
-    { id: 'sbi',    label: 'SBI',       value: '₹812',   change: '+0.4%',  dir: 'up'   },
+    { id: 'nifty',  label: 'Nifty 50',  base: 24531, prefix: '',  decimals: 0, value: '24,531', change: '+0.82%', dir: 'up'   },
+    { id: 'sensex', label: 'Sensex',    base: 80822, prefix: '',  decimals: 0, value: '80,822', change: '+0.64%', dir: 'up'   },
+    { id: 'paytm',  label: 'Paytm',     base: 412,   prefix: '₹', decimals: 0, value: '₹412',   change: '-1.8%',  dir: 'down' },
+    { id: 'adani',  label: 'Adani Ent', base: 2841,  prefix: '₹', decimals: 0, value: '₹2,841', change: '-2.3%',  dir: 'down' },
+    { id: 'sbi',    label: 'SBI',       base: 812,   prefix: '₹', decimals: 0, value: '₹812',   change: '+0.4%',  dir: 'up'   },
   ],
 
   fraudAlerts: [

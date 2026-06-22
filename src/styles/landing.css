@@ -132,6 +132,16 @@
   gap: var(--space-5);
 }
 
+/* Impact flash — single white pulse across the whole stage, fires with burst */
+.lp-intro__flash {
+  position: absolute;
+  inset: -100vh -100vw;
+  background: #FFFFFF;
+  z-index: 5;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
 /* Wordmark — the central arriving element */
 .lp-intro__wordmark {
   position: relative;
@@ -169,10 +179,9 @@
   z-index: 2;
   text-align: center;
   font-family: var(--font-sora);
-  font-size: clamp(11px, 1.4vw, 12px);
+  font-size: clamp(12px, 1.4vw, 14px);
   font-weight: 500;
-  letter-spacing: var(--tracking-wider);
-  text-transform: uppercase;
+  letter-spacing: var(--tracking-1px);
   color: rgba(241, 245, 255, 0.82);
   line-height: var(--leading-relaxed);
   /* max-width: 380px; */
